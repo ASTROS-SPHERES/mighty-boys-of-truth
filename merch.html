@@ -70,7 +70,7 @@
     @media(max-width:1000px){.gallery{grid-template-columns:repeat(2,minmax(0,1fr))}.feature-grid{grid-template-columns:repeat(2,1fr)}.feature:nth-child(2){border-right:0}.feature:nth-child(-n+2){border-bottom:1px solid #ffffff16}}
     @media(max-width:850px){.links a:not(.btn){display:none}.hero-grid,.cta{grid-template-columns:1fr}.hero-art{margin:28px auto 0;max-width:480px}.cta .actions{justify-content:flex-start}}
     @media(max-width:620px){.hero{padding:64px 0}.section{padding:68px 0}.gallery{grid-template-columns:1fr;gap:20px}.feature-grid{grid-template-columns:1fr}.feature,.feature:nth-child(2){border-right:0;border-bottom:1px solid #ffffff16}.feature:last-child{border-bottom:0}.actions{display:grid}.actions .btn{width:100%}.cta{padding:28px}.caption{padding:14px 15px 16px}}
-  </style>
+  .showcase-video{position:relative;padding:10px;background:linear-gradient(145deg,#0c2d5e,#041126);border:1px solid #d7a53b88;border-radius:24px;box-shadow:0 30px 80px #010816a8}.showcase-video video{display:block;width:100%;aspect-ratio:9/16;object-fit:contain;background:#020815;border-radius:16px}.showcase-meta{display:flex;justify-content:space-between;gap:14px;align-items:center;padding:13px 7px 3px}.showcase-meta b{color:var(--g2);font-size:.88rem}.showcase-meta span{color:#b9c8dd;font-size:.76rem;white-space:nowrap}.range-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;margin-top:38px}.range-card{background:white;border:1px solid #d7a53b55;border-radius:20px;padding:24px;box-shadow:0 14px 38px #07182f14}.range-card>span{display:inline-grid;place-items:center;width:38px;height:38px;border-radius:50%;background:var(--n);color:var(--g2);font-weight:700;font-size:.78rem}.range-card h3{color:var(--n);font-size:1.18rem;margin-top:16px}.range-card p{color:#697489;font-size:.9rem;margin:0}@media(max-width:1000px){.range-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:620px){.range-grid{grid-template-columns:1fr}.showcase-meta{display:block}.showcase-meta span{display:block;margin-top:3px}}</style>
 </head>
 <body>
   <header class="nav">
@@ -93,15 +93,11 @@
           <h1>Built for courage.<br><span>Made to stand.</span></h1>
           <p>A premium youth lifestyle collection rooted in truth, character, purpose and belonging. Explore apparel, school gear, sport, adventure essentials, accessories, technology and limited Founder's Editions.</p>
           <div class="actions">
-            <a class="btn gold" href="#gallery">Explore the Full Range</a>
+            <a class="btn gold" href="#range">Explore the Collection</a>
             <a class="btn outline" href="index.html#join">Join Before Launch</a>
           </div>
         </div>
-        <div class="hero-art">
-          <img src="assets/merch/merch-01.webp" width="960" height="1243" alt="Mighty Boys of Truth premium merchandise collection">
-        </div>
-      </div>
-    </section>
+        <div class="hero-art" id="showcase"><div class="showcase-video"><video controls playsinline preload="metadata" poster="assets/merch/mighty-boys-of-truth-premium-merch-poster.webp"><source src="assets/merch/mighty-boys-of-truth-premium-merch-showcase.mp4" type="video/mp4">Your browser does not support embedded video. <a href="assets/merch/mighty-boys-of-truth-premium-merch-showcase.mp4">Open the merchandise showcase video</a>.</video><div class="showcase-meta"><b>Premium Merchandise Showcase</b><span>5:11 • Sound on</span></div></div></div></div></section>
     <section class="features" aria-label="Collection categories">
       <div class="wrap feature-grid">
         <div class="feature"><b>Premium Apparel</b><span>Jackets, hoodies, T-shirts and performance wear.</span></div>
@@ -110,57 +106,10 @@
         <div class="feature"><b>Founder Collectibles</b><span>Limited, numbered apparel and legacy accessories.</span></div>
       </div>
     </section>
-    <section class="section" id="gallery">
-      <div class="wrap">
-        <div class="intro">
-          <div class="ey" style="color:#9a6c15">The complete promotional showcase</div>
-          <h2>More than merchandise.<br>A movement boys can wear.</h2>
-          <p class="lead">Every concept carries the same visual language of courage, faith and truth. Select any page to view the artwork at full size.</p>
-        </div>
-        <div class="gallery">
-          <a class="merch-card" href="assets/merch/merch-01.webp" data-title="Premium Merchandise Collection"><img src="assets/merch/merch-01.webp" width="960" height="1243" alt="Premium merchandise collection cover"><div class="caption"><span>Collection 01</span><b>Premium Merchandise Collection</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-02.webp" data-title="Join the Movement"><img src="assets/merch/merch-02.webp" width="960" height="1243" loading="lazy" alt="Join the Movement merchandise range"><div class="caption"><span>Collection 02</span><b>Join the Movement</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-03.webp" data-title="The Collection"><img src="assets/merch/merch-03.webp" width="960" height="1243" loading="lazy" alt="Mighty Boys of Truth apparel collection"><div class="caption"><span>Collection 03</span><b>The Collection</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-04.webp" data-title="Founder's Edition 2026"><img src="assets/merch/merch-04.webp" width="960" height="1243" loading="lazy" alt="Founder's Edition 2026 merchandise"><div class="caption"><span>Founder's Edition</span><b>Limited Founder's Collection</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-05.webp" data-title="Founder's Courage Hoodie"><img src="assets/merch/merch-05.webp" width="960" height="1243" loading="lazy" alt="Founder's Courage Hoodie"><div class="caption"><span>Founder's Edition</span><b>Founder's Courage Hoodie</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-06.webp" data-title="Founder's Legacy Varsity Jacket"><img src="assets/merch/merch-06.webp" width="960" height="1243" loading="lazy" alt="Founder's Legacy Varsity Jacket"><div class="caption"><span>Founder's Edition</span><b>Founder's Legacy Varsity Jacket</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-07.webp" data-title="Signature Hoodies"><img src="assets/merch/merch-07.webp" width="960" height="1243" loading="lazy" alt="Signature hoodies"><div class="caption"><span>Premium Apparel</span><b>Signature Hoodies</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-08.webp" data-title="Graphic T-Shirts"><img src="assets/merch/merch-08.webp" width="960" height="1243" loading="lazy" alt="Graphic T-shirts"><div class="caption"><span>Premium Apparel</span><b>Graphic T-Shirts</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-09.webp" data-title="Performance Tracksuits"><img src="assets/merch/merch-09.webp" width="960" height="1243" loading="lazy" alt="Mighty performance tracksuits"><div class="caption"><span>Sport Collection</span><b>Performance Tracksuits</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-10.webp" data-title="Football Jersey and Training Shorts"><img src="assets/merch/merch-10.webp" width="960" height="1243" loading="lazy" alt="Football jersey and training shorts"><div class="caption"><span>Sport Collection</span><b>Football Jersey & Training Shorts</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-11.webp" data-title="Adventure Essentials"><img src="assets/merch/merch-11.webp" width="960" height="1243" loading="lazy" alt="Cargo shorts and adventure vest"><div class="caption"><span>Adventure Collection</span><b>Adventure Essentials</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-12.webp" data-title="Signature Headwear"><img src="assets/merch/merch-12.webp" width="960" height="1243" loading="lazy" alt="Caps, beanies and bucket hats"><div class="caption"><span>Everyday Collection</span><b>Signature Headwear</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-13.webp" data-title="School and Travel Backpacks"><img src="assets/merch/merch-13.webp" width="960" height="1243" loading="lazy" alt="School and travel backpacks"><div class="caption"><span>School Collection</span><b>School & Travel Backpacks</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-14.webp" data-title="Back-to-School Mission Set"><img src="assets/merch/merch-14.webp" width="960" height="1243" loading="lazy" alt="Back-to-school lunch set and pencil case"><div class="caption"><span>School Collection</span><b>Back-to-School Mission Set</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-15.webp" data-title="Sports Bottles"><img src="assets/merch/merch-15.webp" width="960" height="1243" loading="lazy" alt="Mighty sports bottles"><div class="caption"><span>Everyday Essentials</span><b>Sports Bottles</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-16.webp" data-title="Bluetooth Speakers"><img src="assets/merch/merch-16.webp" width="960" height="1243" loading="lazy" alt="Mighty Bluetooth speakers"><div class="caption"><span>Technology Collection</span><b>Bluetooth Speakers</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-17.webp" data-title="Socks and Wristbands"><img src="assets/merch/merch-17.webp" width="960" height="1243" loading="lazy" alt="Socks and wristbands"><div class="caption"><span>Everyday Essentials</span><b>Socks & Wristbands</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-18.webp" data-title="Lounge and Off-Duty"><img src="assets/merch/merch-18.webp" width="960" height="1243" loading="lazy" alt="Pyjama set and flip-flop sandals"><div class="caption"><span>Lifestyle Collection</span><b>Lounge & Off-Duty</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-19.webp" data-title="Founder's Accessories"><img src="assets/merch/merch-19.webp" width="960" height="1243" loading="lazy" alt="Founder's accessories and medallion"><div class="caption"><span>Founder's Edition</span><b>Founder's Accessories</b></div></a>
-          <a class="merch-card" href="assets/merch/merch-20.webp" data-title="A Collection With Purpose"><img src="assets/merch/merch-20.webp" width="960" height="1243" loading="lazy" alt="A collection with purpose"><div class="caption"><span>The Brand Vision</span><b>A Collection With Purpose</b></div></a>
-        </div>
-        <div class="cta">
-          <div>
-            <div class="ey">Be part of the founding movement</div>
-            <h2>Wear the mission.<br>Live the message.</h2>
-            <p>Join the pre-launch community for crowdfunding news, collection updates and the official launch announcement.</p>
-          </div>
-          <div class="actions"><a class="btn gold" href="index.html#join">Join the Pre-Launch List</a></div>
-        </div>
-        <p class="note">Promotional collection concepts. Final production specifications, materials, colours and availability will be confirmed for launch.</p>
-      </div>
-    </section>
+    <section class="section" id="range"><div class="wrap"><div class="intro"><div class="ey" style="color:#9a6c15">The complete merchandise world</div><h2>More than merchandise.<br>A movement boys can wear.</h2><p class="lead">The full video showcase presents a unified collection built around courage, character, faith, purpose and belonging.</p></div><div class="range-grid"><article class="range-card"><span>01</span><h3>Signature Apparel</h3><p>Varsity jackets, hoodies, graphic T-shirts and premium everyday layers.</p></article><article class="range-card"><span>02</span><h3>Founder's Editions</h3><p>Limited, numbered garments and collectible accessories for founding supporters.</p></article><article class="range-card"><span>03</span><h3>Performance & Sport</h3><p>Tracksuits, football jerseys, training shorts and sports essentials.</p></article><article class="range-card"><span>04</span><h3>Adventure Range</h3><p>Cargo shorts, utility vests and durable pieces built for every journey.</p></article><article class="range-card"><span>05</span><h3>School & Travel</h3><p>Backpacks, lunch sets, pencil cases and mission-ready school gear.</p></article><article class="range-card"><span>06</span><h3>Headwear & Essentials</h3><p>Caps, beanies, bucket hats, socks, wristbands and water bottles.</p></article><article class="range-card"><span>07</span><h3>Technology & Audio</h3><p>Rugged Bluetooth speakers carrying the Mighty identity beyond apparel.</p></article><article class="range-card"><span>08</span><h3>Lounge & Lifestyle</h3><p>Pyjamas, sandals and off-duty pieces designed with the same premium character.</p></article></div><div class="cta"><div><div class="ey">Be part of the founding movement</div><h2>Wear the mission.<br>Live the message.</h2><p>Join the pre-launch community for crowdfunding news, collection updates and the official launch announcement.</p></div><div class="actions"><a class="btn gold" href="index.html#join">Join the Pre-Launch List</a></div></div><p class="note">Promotional collection concepts. Final production specifications, materials, colours and availability will be confirmed for launch.</p></div></section>
   </main>
   <footer class="footer"><div class="wrap">© 2026 All Mighty Publishing • Mighty Boys of Truth • Be Mighty. Speak Truth. Change the World.</div></footer>
-  <dialog class="lightbox" id="merchLightbox">
-    <div class="lightbox-bar"><h2 id="lightboxTitle">Merchandise Preview</h2><button class="close" type="button" aria-label="Close preview">×</button></div>
-    <img id="lightboxImage" alt="">
-  </dialog>
-  <script>
-    const lightbox=document.getElementById('merchLightbox'),lightboxImage=document.getElementById('lightboxImage'),lightboxTitle=document.getElementById('lightboxTitle'),closeButton=lightbox.querySelector('.close');
-    document.querySelectorAll('.merch-card').forEach(card=>card.addEventListener('click',event=>{if(typeof lightbox.showModal!=='function')return;event.preventDefault();lightboxImage.src=card.href;lightboxImage.alt=card.querySelector('img').alt;lightboxTitle.textContent=card.dataset.title;lightbox.showModal()}));
-    closeButton.addEventListener('click',()=>lightbox.close());
-    lightbox.addEventListener('click',event=>{const box=lightbox.getBoundingClientRect();if(event.clientX<box.left||event.clientX>box.right||event.clientY<box.top||event.clientY>box.bottom)lightbox.close()});
-  </script>
+  
+  
 </body>
 </html>
