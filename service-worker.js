@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mbot-revamp-v1';
+const CACHE_VERSION = 'mbot-revamp-v2';
 const CORE_FILES = [
   './',
   './index.html',
