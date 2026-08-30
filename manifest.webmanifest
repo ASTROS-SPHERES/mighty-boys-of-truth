@@ -1,0 +1,14 @@
+{
+  "name": "Mighty Boys of Truth",
+  "short_name": "Mighty Truth",
+  "description": "Christian Tools for Raising Mighty Boys.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf6ef",
+  "theme_color": "#06152e",
+  "icons": [
+    {"src": "assets/icons/brand-mark.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

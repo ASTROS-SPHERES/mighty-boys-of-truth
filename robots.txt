@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://astros-spheres.github.io/mighty-boys-of-truth/sitemap.xml

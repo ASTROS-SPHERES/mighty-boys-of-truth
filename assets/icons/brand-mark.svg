@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">Mighty Boys of Truth brand mark</title>
+  <desc id="desc">A navy shield with a gold cross and the initials MBOT.</desc>
+  <defs>
+    <linearGradient id="navy" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#0b2c59"/><stop offset="1" stop-color="#030d1d"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0cf82"/><stop offset="1" stop-color="#d7a53b"/></linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#faf6ef"/>
+  <path d="M256 46 430 104v130c0 110-67 196-174 234C149 430 82 344 82 234V104Z" fill="url(#navy)" stroke="url(#gold)" stroke-width="14"/>
+  <path d="M234 112h44v68h68v44h-68v84h-44v-84h-68v-44h68Z" fill="url(#gold)"/>
+  <text x="256" y="393" fill="#f0cf82" font-family="Georgia, serif" font-size="63" font-weight="700" text-anchor="middle" letter-spacing="4">MBOT</text>
+</svg>
