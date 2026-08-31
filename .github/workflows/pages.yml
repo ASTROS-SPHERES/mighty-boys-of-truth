@@ -2,7 +2,7 @@ name: Deploy Mighty Boys of Truth to GitHub Pages
 
 on:
   push:
-    branches: ["website-revamp"]
+    branches: ["main"]
   workflow_dispatch:
 
 permissions:
@@ -17,7 +17,7 @@ concurrency:
 jobs:
   deploy:
     environment:
-      name: website-revamp-production
+      name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
