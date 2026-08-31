@@ -2,7 +2,7 @@ name: Deploy Mighty Boys of Truth to GitHub Pages
 
 on:
   push:
-    branches: ["main"]
+    branches: ["website-revamp"]
   workflow_dispatch:
 
 permissions:
