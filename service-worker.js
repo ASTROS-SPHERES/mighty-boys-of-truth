@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mbot-revamp-v2';
+const CACHE_VERSION = 'mbot-revamp-v3';
 const CORE_FILES = [
   './',
   './index.html',
@@ -18,6 +18,9 @@ const CORE_FILES = [
   './offline.html',
   './assets/site.css',
   './assets/site.js',
+  './assets/discovery-map.js',
+  './assets/products/mighty-bible-discovery/interactive-bible-discovery-map-web-v1.webp',
+  './assets/products/mighty-bible-discovery/sample-cards/cards.json',
   './assets/icons/brand-mark.svg'
 ];
 
