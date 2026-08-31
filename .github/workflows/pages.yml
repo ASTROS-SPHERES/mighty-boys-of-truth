@@ -27,10 +27,15 @@ jobs:
         uses: actions/configure-pages@v5
         with:
           enablement: true
+      - name: Prepare clean public site
+        run: |
+          mkdir -p _site
+          cp ./*.html ./manifest.webmanifest ./robots.txt ./service-worker.js ./sitemap.xml _site/
+          cp -R ./assets _site/assets
       - name: Upload site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: '.'
+          path: './_site'
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

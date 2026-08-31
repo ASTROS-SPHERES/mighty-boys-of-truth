@@ -1,29 +1,22 @@
 # Release and Rollback Checklist
 
-## Protected release candidate
+## Protected production source
 
-- Source branch: `website-revamp`
-- Rollback point: current `main` commit before any approved merge
-- Rule: do not merge or modify `main` without separate owner approval
+- Production source branch: `website-revamp`
+- Preserved legacy branch: `main`
+- Preserved legacy SHA: `50403213f0812bf1bdbf335b6293423562ef5cb6`
+- Rule: do not merge into or modify `main`.
 
-## Before public publication
+## GitHub Pages publication
 
-1. Review the homepage and all four product pages on mobile and desktop.
-2. Complete the approval list in `SIMULATION_APPROVALS.md` for official-rule wording.
-3. Confirm adult form delivery and unsubscribe handling.
-4. Confirm all social, merchandise and YouTube destinations.
-5. Approve the current product images and absence of unapproved Eli imagery.
-6. Complete launch-territory privacy/legal review.
-7. Record final owner approval from Stephan Naude.
+1. In repository Settings → Environments → `website-revamp-production`, allow deployments from the selected branch `website-revamp`.
+2. Re-run the latest `Deploy Mighty Boys of Truth to GitHub Pages` workflow.
+3. Confirm the workflow checkout SHA matches the current `website-revamp` head.
+4. Confirm the public URL loads the revamped homepage and the interactive map.
+5. Run the homepage-to-map journey, one random draw, one card flip and one marker selection on the public URL.
 
-## Controlled publication
-
-1. Freeze the approved branch commit.
-2. Preserve the pre-launch `main` commit SHA.
-3. Merge only after explicit owner approval.
-4. Verify homepage, product pages, demos, forms, privacy, social and merchandise destinations on the public URL.
-5. Monitor form failures and navigation errors.
+The workflow deploys a clean `_site` bundle containing only public HTML, runtime files and assets. Internal documentation and archived root artwork are not published.
 
 ## Rollback
 
-If a launch-blocking issue affects trust, privacy, core functionality or product accuracy, redeploy the recorded pre-launch `main` commit. Do not rewrite or delete the protected revamp branch; keep it available for diagnosis and correction.
+If a launch-blocking issue affects trust, privacy, core functionality or product accuracy, redeploy the last verified `website-revamp` commit. Preserve `main` and do not rewrite or delete the revamp branch.
