@@ -23,6 +23,9 @@
 @media(max-width:640px){.hero-quick-links{display:grid}.hero-quick-links a{padding:8px 0}.media-actions .button{width:100%}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
 
+/* Keep product-finder copy horizontal; only the leading number is circular. */
+.finder-choices button>span:not(:first-child){width:auto;height:auto;min-width:0;display:block;place-items:initial;border-radius:0;background:transparent;color:inherit;font-weight:inherit}
+
 /* Mighty Bible Discovery flagship map experience */
 .discovery-map-section{position:relative;isolation:isolate;overflow:hidden;scroll-margin-top:76px;background:radial-gradient(circle at 88% 8%,#1767c74a,transparent 27%),radial-gradient(circle at 8% 42%,#d7a53b1f,transparent 26%),linear-gradient(145deg,var(--navy-950),#082654 58%,var(--navy-950));color:#fff}
 .discovery-map-section:before{content:"";position:absolute;z-index:-1;inset:0;opacity:.2;background-image:linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px);background-size:72px 72px;mask-image:linear-gradient(to bottom,#000,transparent 78%)}
