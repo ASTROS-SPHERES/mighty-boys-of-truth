@@ -1,0 +1,30 @@
+{
+  "product": "Mighty Bible Discovery",
+  "version": "Master sample key v1.0",
+  "status": "FINAL FOR THE 10-CARD SAMPLE SET",
+  "coordinate_rule": "Use the centre of the map's location marker. Event cards without a printed location marker use the dedicated product-map anchor listed here. Each card has one primary anchor; its Journey Trail carries the wider route.",
+  "grid_note": "Mount Sinai is H-10: the marker sits in the southward continuation of the map's 10 band.",
+  "journey_trails": [
+    {"id": "JT-01", "name": "Abraham's Journey"},
+    {"id": "JT-02", "name": "Joseph to Egypt"},
+    {"id": "JT-03", "name": "The Exodus"},
+    {"id": "JT-04", "name": "Entering the Land"},
+    {"id": "JT-05", "name": "Kingdom Trail"},
+    {"id": "JT-06", "name": "Exile to Babylon"},
+    {"id": "JT-07", "name": "To Bethlehem"},
+    {"id": "JT-08", "name": "Jesus' Ministry"},
+    {"id": "JT-09", "name": "Voyage to Rome"}
+  ],
+  "cards": [
+    {"number": 1, "card": "Abraham", "map_code": "N-03", "anchor": "Haran", "anchor_type": "printed marker", "anchor_xy": [1741, 383], "discovery_zone": "Empires of the East", "bible_era": "2 · Patriarchs", "journey_trail_id": "JT-01", "journey_trail": "Abraham's Journey", "scripture": "Genesis 11:31–12:9"},
+    {"number": 2, "card": "Joseph", "map_code": "D-08", "anchor": "Goshen", "anchor_type": "printed marker", "anchor_xy": [554, 897], "discovery_zone": "Egypt & the Nile", "bible_era": "2 · Patriarchs", "journey_trail_id": "JT-02", "journey_trail": "Joseph to Egypt", "scripture": "Genesis 37; 41–47"},
+    {"number": 3, "card": "Moses", "map_code": "H-10", "anchor": "Mount Sinai", "anchor_type": "printed marker", "anchor_xy": [999, 1258], "discovery_zone": "Sinai & Wilderness", "bible_era": "3 · Exodus", "journey_trail_id": "JT-03", "journey_trail": "The Exodus", "scripture": "Exodus 19–20; Deuteronomy 5"},
+    {"number": 4, "card": "The Exodus", "map_code": "F-09", "anchor": "Red Sea crossing", "anchor_type": "product-map event anchor", "anchor_xy": [740, 1040], "discovery_zone": "Sinai & Wilderness", "bible_era": "3 · Exodus", "journey_trail_id": "JT-03", "journey_trail": "The Exodus", "scripture": "Exodus 12–14"},
+    {"number": 5, "card": "Jericho", "map_code": "K-08", "anchor": "Jericho", "anchor_type": "printed marker", "anchor_xy": [1382, 895], "discovery_zone": "Promised Land", "bible_era": "4 · Conquest & Judges", "journey_trail_id": "JT-04", "journey_trail": "Entering the Land", "scripture": "Joshua 5:13–6:27"},
+    {"number": 6, "card": "David", "map_code": "J-08", "anchor": "Jerusalem", "anchor_type": "printed marker", "anchor_xy": [1293, 936], "discovery_zone": "Israel & Judah", "bible_era": "5 · Kings & Prophets", "journey_trail_id": "JT-05", "journey_trail": "Kingdom Trail", "scripture": "2 Samuel 5:1–12"},
+    {"number": 7, "card": "Daniel", "map_code": "P-06", "anchor": "Babylon", "anchor_type": "printed marker", "anchor_xy": [2006, 693], "discovery_zone": "Empires of the East", "bible_era": "5 · Kings & Prophets", "journey_trail_id": "JT-06", "journey_trail": "Exile to Babylon", "scripture": "Daniel 1; 6"},
+    {"number": 8, "card": "Bethlehem", "map_code": "J-08", "anchor": "Bethlehem", "anchor_type": "printed marker", "anchor_xy": [1322, 979], "discovery_zone": "World of Jesus", "bible_era": "6 · Jesus & the Gospels", "journey_trail_id": "JT-07", "journey_trail": "To Bethlehem", "scripture": "Micah 5:2; Luke 2:1–20"},
+    {"number": 9, "card": "Jesus Calms the Storm", "map_code": "L-06", "anchor": "Sea of Galilee", "anchor_type": "product-map event anchor", "anchor_xy": [1510, 670], "discovery_zone": "World of Jesus", "bible_era": "6 · Jesus & the Gospels", "journey_trail_id": "JT-08", "journey_trail": "Jesus' Ministry", "scripture": "Mark 4:35–41"},
+    {"number": 10, "card": "Paul's Journey to Rome", "map_code": "B-01", "anchor": "Rome", "anchor_type": "printed marker", "anchor_xy": [222, 149], "discovery_zone": "Mediterranean Mission World", "bible_era": "7 · Acts & the Early Church", "journey_trail_id": "JT-09", "journey_trail": "Voyage to Rome", "scripture": "Acts 27–28"}
+  ]
+}
