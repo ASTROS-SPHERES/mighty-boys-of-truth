@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mbot-revamp-v7';
+const CACHE_VERSION = 'mbot-revamp-v8';
 const CORE_FILES = [
   './',
   './index.html',
@@ -21,6 +21,11 @@ const CORE_FILES = [
   './assets/discovery-map.js',
   './assets/videos/fighting-jesus-thumbnail.jpg',
   './assets/videos/i-can-see-it-thumbnail.jpg',
+  './assets/products/mighty-hero-matchup/complete-game.webp',
+  './assets/products/mighty-hero-matchup/approved-product-box.webp',
+  './assets/products/mighty-hero-matchup/approved-hero-deck.webp',
+  './assets/products/mighty-hero-matchup/command-tokens.webp',
+  './assets/products/mighty-hero-matchup/flagship-video-qr-card.webp',
   './assets/products/mighty-bible-discovery/interactive-bible-discovery-map-web-v1.webp',
   './assets/products/mighty-bible-discovery/sample-cards/cards.json',
   './assets/icons/brand-mark.svg'
