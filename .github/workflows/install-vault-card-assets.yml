@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find assets/mighty-vault/upload-parts -name 'part-*.txt' | wc -l)" -eq 23
+          test "$(find assets/mighty-vault/upload-parts -name 'part-*.txt' | wc -l)" -eq 28
           cat assets/mighty-vault/upload-parts/part-*.txt | base64 --decode > /tmp/vault-card-assets.zip
           unzip -o /tmp/vault-card-assets.zip -d .
           test "$(find assets/mighty-vault/cards -maxdepth 1 -name 'hmm-*.webp' | wc -l)" -eq 64
