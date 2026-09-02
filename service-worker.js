@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mbot-revamp-v8';
+const CACHE_VERSION = 'mbot-revamp-v9';
 const CORE_FILES = [
   './',
   './index.html',
@@ -8,6 +8,7 @@ const CORE_FILES = [
   './mighty-365.html',
   './mighty-bible-discovery.html',
   './mighty-hero-matchup.html',
+  './mighty-vault.html',
   './mighty-bible-battle.html',
   './for-families.html',
   './for-churches-schools.html',
@@ -18,6 +19,10 @@ const CORE_FILES = [
   './offline.html',
   './assets/site.css',
   './assets/site.js',
+  './assets/mighty-vault.css',
+  './assets/mighty-vault.js',
+  './assets/mighty-vault-card-atlas.webp',
+  './assets/mighty-vault-home-entry.webp',
   './assets/discovery-map.js',
   './assets/videos/fighting-jesus-thumbnail.jpg',
   './assets/videos/i-can-see-it-thumbnail.jpg',
