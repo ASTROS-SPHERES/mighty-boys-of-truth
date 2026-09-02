@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mbot-revamp-v11-vault-final';
+const CACHE_VERSION = 'mbot-revamp-v12-vault-visualfix';
 const CORE_FILES = [
   './',
   './index.html',
