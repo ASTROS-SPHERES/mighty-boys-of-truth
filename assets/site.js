@@ -344,6 +344,59 @@ document.querySelectorAll('[data-matchup-carousel]').forEach(carousel => {
   showPoster(0);
 });
 
+// Homepage Mighty Vault entry point. This is intentionally injected from the shared site script
+// so the approved vault artwork and direct navigation remain available without duplicating markup.
+(() => {
+  const path = location.pathname.replace(/\/+$/, '');
+  const isHome = path === '' || path.endsWith('/mighty-boys-of-truth') || path.endsWith('/index.html');
+  if (!isHome) return;
+
+  const nav = document.querySelector('#primary-nav');
+  if (nav && !nav.querySelector('a[href="mighty-vault.html"]')) {
+    const heroLink = nav.querySelector('a[href="mighty-hero-matchup.html"]');
+    const vaultLink = document.createElement('a');
+    vaultLink.href = 'mighty-vault.html';
+    vaultLink.textContent = 'Mighty Vault';
+    vaultLink.className = 'nav-vault-link';
+    if (heroLink) heroLink.insertAdjacentElement('afterend', vaultLink);
+    else nav.prepend(vaultLink);
+  }
+
+  const hero = document.querySelector('section.hero');
+  if (hero && !document.querySelector('.homepage-vault-entry')) {
+    const section = document.createElement('section');
+    section.className = 'homepage-vault-entry';
+    section.setAttribute('aria-label', 'Mighty Vault');
+    section.innerHTML = `
+      <div class="shell">
+        <a class="homepage-vault-entry-link" href="mighty-vault.html" aria-label="Enter the Mighty Vault — draw daily and collect 64 heroes">
+          <img src="assets/mighty-vault-home-entry.webp" alt="Mighty Vault — Draw Daily, Collect 64 Heroes. Enter the Vault." width="550" height="310" decoding="async">
+        </a>
+        <p class="homepage-vault-entry-note">Open one free Hero pack every day, collect all 64 Bible heroes and discover rare digital foil variants.</p>
+      </div>`;
+    hero.insertAdjacentElement('afterend', section);
+  }
+
+  if (!document.querySelector('#homepage-vault-entry-styles')) {
+    const style = document.createElement('style');
+    style.id = 'homepage-vault-entry-styles';
+    style.textContent = `
+      .homepage-vault-entry{padding:clamp(28px,5vw,64px) 0;background:linear-gradient(180deg,#06152e 0%,#0a1c36 100%)}
+      .homepage-vault-entry-link{display:block;max-width:1100px;margin:0 auto;border-radius:22px;overflow:hidden;border:1px solid rgba(217,167,45,.7);box-shadow:0 22px 55px rgba(0,0,0,.42);outline-offset:5px;transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+      .homepage-vault-entry-link img{display:block;width:100%;height:auto}
+      .homepage-vault-entry-link:hover,.homepage-vault-entry-link:focus-visible{transform:translateY(-3px);border-color:#f0c45a;box-shadow:0 28px 65px rgba(0,0,0,.5)}
+      .homepage-vault-entry-note{max-width:900px;margin:18px auto 0;text-align:center;color:#e9edf5;font-size:clamp(.95rem,1.8vw,1.08rem)}
+      .nav-vault-link{font-weight:800!important;color:#d9a72d!important}
+      @media(max-width:700px){.homepage-vault-entry{padding:22px 0}.homepage-vault-entry-link{border-radius:14px}.homepage-vault-entry-note{margin-top:13px;padding:0 8px}}
+    `;
+    document.head.appendChild(style);
+  }
+
+  document.querySelectorAll('.homepage-vault-entry-link,.nav-vault-link').forEach(link => {
+    link.addEventListener('click', () => recordEvent('mighty_vault_entry_selected', { source: link.classList.contains('nav-vault-link') ? 'homepage-nav' : 'homepage-vault-art' }));
+  });
+})();
+
 if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./service-worker.js').catch(() => {
