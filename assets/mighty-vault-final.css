@@ -1,0 +1,37 @@
+/* Mighty Vault production safety overrides — 2 September 2026 */
+.vault-pack-closed[hidden],
+.vault-reveal[hidden],
+.vault-modal[hidden] {
+  display: none !important;
+}
+.vault-reveal:not([hidden]) {
+  display: block;
+}
+.vault-pack-closed:not([hidden]) {
+  display: flex;
+}
+.vault-page button:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+.vault-storage-status {
+  display: block;
+  margin-top: .4rem;
+  color: #91a6bf;
+  font-size: .78rem;
+}
+html[data-vault-ready="error"] [data-open-pack] {
+  pointer-events: none;
+  opacity: .55;
+}
+@media (max-width: 620px) {
+  .vault-reveal-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .45rem;
+  }
+  .vault-reveal-meta small {
+    display: block;
+    font-size: .68rem;
+    line-height: 1.25;
+  }
+}
