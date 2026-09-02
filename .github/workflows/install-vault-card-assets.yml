@@ -5,7 +5,7 @@ on:
     branches:
       - vault-direct-cards-final
     paths:
-      - 'assets/mighty-vault/vault-card-assets.zip'
+      - 'assets/mighty-vault/upload-parts/READY'
 
 permissions:
   contents: write
@@ -20,11 +20,14 @@ jobs:
           ref: vault-direct-cards-final
           fetch-depth: 0
 
-      - name: Install and verify 64 direct Hero card assets
+      - name: Reconstruct and verify 64-card archive
         shell: bash
         run: |
           set -euo pipefail
-          unzip -o assets/mighty-vault/vault-card-assets.zip -d assets/mighty-vault/cards
+          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'part-*.txt' | wc -l)" -eq 28
+          cat $(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'part-*.txt' | sort) | base64 --decode > /tmp/vault-card-assets.zip
+          echo '831fcb5bdba85123e88b38f1fed39e359ef1de6767ec256533b2fe2a0a878696  /tmp/vault-card-assets.zip' | sha256sum -c -
+          unzip -o /tmp/vault-card-assets.zip -d assets/mighty-vault/cards
           test "$(find assets/mighty-vault/cards -maxdepth 1 -name 'hmm-*.webp' | wc -l)" -eq 64
 
       - name: Commit clean direct Hero card library
@@ -34,7 +37,8 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add assets/mighty-vault/cards
-          git rm assets/mighty-vault/vault-card-assets.zip
+          git rm -r assets/mighty-vault/upload-parts
+          git rm -f assets/mighty-vault/vault-card-assets.zip
           git rm .github/workflows/install-vault-card-assets.yml
           git commit -m 'Install 64 direct Mighty Vault Hero card assets'
           git push origin HEAD:vault-direct-cards-final
