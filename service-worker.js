@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mbot-revamp-v9';
+const CACHE_VERSION = 'mbot-revamp-v10';
 const CORE_FILES = [
   './',
   './index.html',
@@ -22,6 +22,9 @@ const CORE_FILES = [
   './assets/mighty-vault.css',
   './assets/mighty-vault.js',
   './assets/mighty-vault-card-atlas.webp',
+  './assets/vault-aquila.webp',
+  './assets/vault-lydia.webp',
+  './assets/vault-phoebe.webp',
   './assets/mighty-vault-home-entry.webp',
   './assets/discovery-map.js',
   './assets/videos/fighting-jesus-thumbnail.jpg',
@@ -68,12 +71,14 @@ self.addEventListener('fetch', event => {
   }
 
   event.respondWith(
-    caches.match(request).then(cached => cached || fetch(request).then(response => {
-      if (response.ok) {
-        const copy = response.clone();
-        caches.open(CACHE_VERSION).then(cache => cache.put(request, copy));
-      }
-      return response;
-    }))
+    fetch(request)
+      .then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_VERSION).then(cache => cache.put(request, copy));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request))
   );
 });
