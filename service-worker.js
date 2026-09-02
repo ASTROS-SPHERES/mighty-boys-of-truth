@@ -1,10 +1,9 @@
-const CACHE_VERSION = 'mbot-revamp-v10';
+const CACHE_VERSION = 'mbot-revamp-v11-vault-final';
 const CORE_FILES = [
   './',
   './index.html',
   './about.html',
   './draw-a-card.html',
-  './hero-matchup-demo.html',
   './mighty-365.html',
   './mighty-bible-discovery.html',
   './mighty-hero-matchup.html',
@@ -20,6 +19,7 @@ const CORE_FILES = [
   './assets/site.css',
   './assets/site.js',
   './assets/mighty-vault.css',
+  './assets/mighty-vault-final.css',
   './assets/mighty-vault.js',
   './assets/mighty-vault-card-atlas.webp',
   './assets/vault-aquila.webp',
@@ -40,7 +40,11 @@ const CORE_FILES = [
 ];
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE_VERSION).then(cache => cache.addAll(CORE_FILES)));
+  event.waitUntil(
+    caches.open(CACHE_VERSION).then(async cache => {
+      await Promise.allSettled(CORE_FILES.map(file => cache.add(file)));
+    })
+  );
   self.skipWaiting();
 });
 
