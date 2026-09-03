@@ -1,0 +1,45 @@
+name: Finalize Mighty Vault Atlas Repair
+on:
+  push:
+    branches: [vault-final-direct64-install]
+    paths: ['.github/workflows/finalize-vault-atlas-repair.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  repair-and-install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: vault-final-direct64-install
+          fetch-depth: 0
+      - name: Patch part 20, validate and install atlas
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('assets/vault-transfer-final/part-20.txt')
+          s=p.read_text()
+          assert len(s)==15000
+          fix='x1V/fJBiCnU8yUO6L6iTKkoznTHEEdlnicrw9rCYiGDeAlbfFsGiamnB9QMlSeKoqBiM4Cv60wjRYbUmoEvKYiX0tjkS5W9GTnRWDZhOEdIbG5lKGrpcpQ8++s95OrrnnGbEGaDYqPEBeRkwSbC5bEsEE5tf7KdzivU6Y4MSPvVX1Jfgj1hbUOwm9bEKhaYSrY8/kXI2018AW6B7dScdy9xuen5zh9TGrXdyZ7p/Ow984VgxA9dr07+gpALf9TbfePsYZ0MN0oEEb0phkIhOKLVym1ndPSDTkwZcOvVKSScGnPtagge/4XU0EheuAN6iRIi2tjuD3qIJHDf/CI8qJlcNIiSBu7zAjdBOCwNIlC6gFARBR94MCM75pHBk9rxIPmV1ACX9ZPpuz/jHDnzdEpUxFeXDH+5G45/LqrJtq6SDISQpdo2U1/+OO9GaPx7fQ0Ltl9zXpY1CAYX36EFYVXK5KHiBsJsNIW+Y2n2r0rsQ83lhO7Tb'
+          assert len(fix)==500
+          p.write_text(s[:12500]+fix+s[13000:])
+          PY
+          echo 'a0e84cd5ad79c71fe9527e56aa7ddec72b93b0142b1902cd5327c785cefe3b11  assets/vault-transfer-final/part-20.txt' | sha256sum -c -
+          cat assets/vault-transfer-final/part-{01..23}.txt | base64 -d > assets/mighty-vault-card-atlas.webp
+          echo 'ca0baab18c957767e8c1ff684c239208e922defb0cf144fe5b6d1f23ec4e999a  assets/mighty-vault-card-atlas.webp' | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          b=Path('assets/mighty-vault-card-atlas.webp').read_bytes()
+          assert b[:4]==b'RIFF' and b[8:12]==b'WEBP'
+          assert struct.unpack_from('<I',b,4)[0]+8==len(b)
+          print('FINAL_ATLAS_VALID',len(b))
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/vault-transfer-final/part-20.txt assets/mighty-vault-card-atlas.webp
+          git commit -m 'Install verified final 64-card Mighty Vault atlas'
+          git push origin HEAD:vault-final-direct64-install
