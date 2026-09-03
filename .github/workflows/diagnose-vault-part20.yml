@@ -1,0 +1,25 @@
+name: Diagnose Vault Part 20
+on:
+  push:
+    branches: [vault-final-direct64-install]
+    paths: ['.github/workflows/diagnose-vault-part20.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: vault-final-direct64-install
+      - name: Hash 500-character chunks
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import hashlib
+          s=Path('assets/vault-transfer-final/part-20.txt').read_text()
+          print('LENGTH',len(s))
+          for i in range(0,len(s),500):
+              print(i,hashlib.sha256(s[i:i+500].encode()).hexdigest())
+          PY
