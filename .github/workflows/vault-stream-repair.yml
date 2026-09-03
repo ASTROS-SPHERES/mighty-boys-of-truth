@@ -1,0 +1,161 @@
+name: Mighty Vault Stream Repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-stream-repair.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch every branch
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+      - name: Repair base64 streams and extract valid hero cards
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/vault-stream-repair && mkdir -p /tmp/vault-stream-repair/cards
+          python <<'PY'
+          import base64, binascii, hashlib, io, os, re, struct, subprocess, zlib
+
+          SHAS={
+            'chunk0':'1d4532fb856b9b35c2d102ae30c132d6363dace0',
+            'chunk1a':'3fd60e337fc5064478b88b9353a6f5ea1b9828b6',
+            'final1':'e3ae530d74fb4226f7c930581206a3e4625a4db5',
+            'final2':'5b8b436da027f4349e62c5bcc89cbd1b01c6a037',
+            'final3':'75f1d2905def58c87772fad27cc18e574add0efc',
+          }
+          texts={k:subprocess.check_output(['git','cat-file','blob',v]).decode('ascii').strip().replace('\n','').replace('\r','') for k,v in SHAS.items()}
+          B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+
+          def b64decode_loose(s):
+              # Internal '=' only belongs at the true end of a base64 stream.
+              s=''.join(c for c in s if c in B64+'=')
+              if '=' in s[:-2]:
+                  # preserve for standalone complete chunks, caller can strip when joining
+                  pass
+              try:
+                  return base64.b64decode(s + '='*((4-len(s)%4)%4), validate=False)
+              except Exception:
+                  return None
+
+          def parse_zip(data, label, save=True):
+              if not data or not data.startswith(b'PK\x03\x04'):
+                  return (0,0,[])
+              pos=0; headers=0; complete=0; cards=[]
+              while True:
+                  p=data.find(b'PK\x03\x04',pos)
+                  if p<0 or p+30>len(data): break
+                  try:
+                      sig,ver,flags,method,mtime,mdate,crc,csize,usize,nlen,elen=struct.unpack_from('<IHHHHHIIIHH',data,p)
+                  except struct.error: break
+                  ns=p+30; ne=ns+nlen; payload=ne+elen
+                  if ne>len(data): break
+                  name=data[ns:ne].decode('utf-8','replace')
+                  headers+=1
+                  if flags & 0x08 or not csize or payload+csize>len(data):
+                      pos=max(p+4,payload); continue
+                  comp=data[payload:payload+csize]
+                  try:
+                      out=comp if method==0 else zlib.decompress(comp,-15) if method==8 else None
+                  except Exception:
+                      out=None
+                  if out is not None and (not usize or len(out)==usize) and (binascii.crc32(out)&0xffffffff)==crc:
+                      complete+=1
+                      m=re.search(r'hmm-(\d{3})-([^/]+)\.webp$',name,re.I)
+                      if m and out[:4]==b'RIFF' and out[8:12]==b'WEBP':
+                          cid=int(m.group(1)); cards.append((cid,name,len(out),hashlib.sha256(out).hexdigest()))
+                          if save:
+                              fn=f'hmm-{cid:03d}-{m.group(2)}.webp'
+                              open('/tmp/vault-stream-repair/cards/'+fn,'wb').write(out)
+                  pos=max(p+4,payload+csize)
+              return headers,complete,cards
+
+          def report(label,s,save=True):
+              d=b64decode_loose(s)
+              if d is None:
+                  print(label,'BASE64_FAIL','chars',len(s)); return (-1,-1,[])
+              h,c,cards=parse_zip(d,label,save)
+              print('\nCANDIDATE',label,'chars',len(s),'bytes',len(d),'sha256',hashlib.sha256(d).hexdigest(),'headers',h,'complete',c)
+              for x in cards: print(' CARD',x)
+              return h,c,cards
+
+          # First inspect each sensible prefix independently.
+          f1,f2,f3=texts['final1'],texts['final2'],texts['final3']
+          report('final1',f1)
+          report('final1+final2',f1+f2)
+          report('final_trim_last',f1+f2+f3[:-1])
+          report('final_drop_first3',f1+f2+f3[1:])
+          report('final3_first15000',f1+f2+f3[:15000])
+
+          # Try deleting one character near every transfer boundary and at the tail.
+          full=f1+f2+f3
+          positions=set()
+          for center in (len(f1),len(f1)+len(f2),len(full)-1):
+              positions.update(range(max(0,center-12),min(len(full),center+13)))
+          best=(0,0,None,None,[])
+          for pos in sorted(positions):
+              s=full[:pos]+full[pos+1:]
+              d=b64decode_loose(s)
+              if d is None: continue
+              h,c,cards=parse_zip(d,f'del-{pos}',False)
+              score=(len(set(x[0] for x in cards)),c)
+              if score>(best[0],best[1]): best=(score[0],score[1],pos,d,cards)
+          print('\nBEST_DELETE',best[0],best[1],'pos',best[2],'cards',best[4])
+          if best[3] is not None:
+              parse_zip(best[3],'best-delete',True)
+              open('/tmp/vault-stream-repair/best-final-repaired.zip','wb').write(best[3])
+
+          # Try one missing base64 character inserted at each transfer boundary.
+          bestins=(0,0,None,None,None,[])
+          for pos in (len(f1),len(f1)+len(f2),len(full)):
+              for ch in B64:
+                  s=full[:pos]+ch+full[pos:]
+                  d=b64decode_loose(s)
+                  if d is None: continue
+                  h,c,cards=parse_zip(d,'insert',False)
+                  score=(len(set(x[0] for x in cards)),c)
+                  if score>(bestins[0],bestins[1]): bestins=(score[0],score[1],pos,ch,d,cards)
+          print('BEST_INSERT',bestins[0],bestins[1],'pos',bestins[2],'char',bestins[3],'cards',bestins[5])
+          if bestins[4] is not None and bestins[0]>best[0]:
+              parse_zip(bestins[4],'best-insert',True)
+              open('/tmp/vault-stream-repair/best-final-repaired.zip','wb').write(bestins[4])
+
+          # chunk0 is padded as if complete. Inspect it alone first, then test joining
+          # to chunk1a by stripping its trailing padding and repairing one boundary char.
+          c0,c1=texts['chunk0'],texts['chunk1a']
+          report('chunk0-alone',c0)
+          joined=c0.rstrip('=')+c1
+          for variant,s in [('chunk-joined',joined),('chunk-drop-tail',joined[:-1])]: report(variant,s)
+          cbest=(0,0,None,None,[])
+          boundary=len(c0.rstrip('='))
+          for pos in range(max(0,boundary-12),min(len(joined),boundary+13)):
+              s=joined[:pos]+joined[pos+1:]
+              d=b64decode_loose(s)
+              if d is None: continue
+              h,c,cards=parse_zip(d,'chunk-del',False)
+              score=(len(set(x[0] for x in cards)),c)
+              if score>(cbest[0],cbest[1]): cbest=(score[0],score[1],pos,d,cards)
+          print('BEST_CHUNK_DELETE',cbest[0],cbest[1],'pos',cbest[2],'cards',cbest[4])
+          if cbest[3] is not None: parse_zip(cbest[3],'best-chunk-delete',True)
+
+          # Inventory unique cards recovered by all successful candidates.
+          files=sorted(os.listdir('/tmp/vault-stream-repair/cards'))
+          ids=sorted({int(re.search(r'hmm-(\d{3})',x).group(1)) for x in files})
+          print('\nRECOVERED_UNIQUE_IDS',ids,'COUNT',len(ids))
+          open('/tmp/vault-stream-repair/manifest.txt','w').write('Recovered IDs: '+','.join(f'{x:03d}' for x in ids)+'\n')
+          PY
+      - name: Upload repaired stream artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mighty-vault-stream-repair
+          path: /tmp/vault-stream-repair
+          retention-days: 1
