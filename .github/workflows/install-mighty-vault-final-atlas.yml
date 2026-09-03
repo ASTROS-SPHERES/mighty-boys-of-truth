@@ -1,0 +1,58 @@
+name: Install Mighty Vault Final Atlas
+
+on:
+  push:
+    branches: [vault-final-direct64-install]
+    paths:
+      - '.github/workflows/install-mighty-vault-final-atlas.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout install branch
+        uses: actions/checkout@v4
+        with:
+          ref: vault-final-direct64-install
+          fetch-depth: 0
+
+      - name: Reconstruct and validate final 64-card atlas
+        shell: bash
+        run: |
+          set -euo pipefail
+          : > /tmp/mighty-vault-atlas.b64
+          for n in $(seq -w 1 23); do
+            test -f "assets/vault-transfer-final/part-${n}.txt"
+            cat "assets/vault-transfer-final/part-${n}.txt" >> /tmp/mighty-vault-atlas.b64
+          done
+          base64 -d /tmp/mighty-vault-atlas.b64 > assets/mighty-vault-card-atlas.webp
+          echo 'ca0baab18c957767e8c1ff684c239208e922defb0cf144fe5b6d1f23ec4e999a  assets/mighty-vault-card-atlas.webp' | sha256sum -c -
+          python - <<'PY'
+          from pathlib import Path
+          import struct
+          p=Path('assets/mighty-vault-card-atlas.webp')
+          b=p.read_bytes()
+          assert b[:4] == b'RIFF', 'Not RIFF'
+          assert b[8:12] == b'WEBP', 'Not WEBP'
+          assert struct.unpack_from('<I', b, 4)[0] + 8 == len(b), 'RIFF length mismatch'
+          assert len(b) > 200_000, f'Atlas unexpectedly small: {len(b)}'
+          print('Validated final Mighty Vault atlas:', len(b), 'bytes')
+          PY
+
+      - name: Commit final atlas
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/mighty-vault-card-atlas.webp
+          if git diff --cached --quiet; then
+            echo 'Final atlas already installed.'
+          else
+            git commit -m 'Install verified final 64-card Mighty Vault atlas'
+            git push origin HEAD:vault-final-direct64-install
+          fi
