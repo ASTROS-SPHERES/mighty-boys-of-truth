@@ -1,0 +1,47 @@
+name: Mighty Vault Production QA
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  verify-vault:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Verify Mighty Vault production contract
+        run: python scripts/verify-mighty-vault.py
+
+      - name: Check Vault JavaScript syntax
+        run: node --check assets/mighty-vault.js
+
+      - name: Check shared website JavaScript syntax
+        run: node --check assets/site.js
+
+      - name: Confirm exactly 64 collection positions
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          text = Path('assets/mighty-vault.js').read_text(encoding='utf-8')
+          m = re.search(r'const N="([^"]+)"\.split\("\|"\)', text)
+          if not m:
+              raise SystemExit('Could not parse Mighty Vault hero roster')
+          heroes = m.group(1).split('|')
+          assert len(heroes) == 64, f'Expected 64 heroes, found {len(heroes)}'
+          assert heroes[-3:] == ['Aquila', 'Lydia', 'Phoebe'], heroes[-3:]
+          print('64-card roster verified')
+          PY
