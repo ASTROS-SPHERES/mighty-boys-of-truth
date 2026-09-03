@@ -17,11 +17,12 @@ jobs:
         run: git fetch origin vault-art-fix-test:vault-art-fix-test
       - name: Install image tools
         run: python -m pip install --quiet pillow
-      - name: Analyze strips and match known cards
+      - name: Analyze and export recoverable card strips
         shell: bash
         run: |
           set -euo pipefail
-          mkdir -p /tmp/vault-strips /tmp/known
+          rm -rf /tmp/vault-strips /tmp/vault-crops
+          mkdir -p /tmp/vault-strips /tmp/vault-crops
           for p in \
             assets/vault-strips/strip-01.webp.b64 \
             assets/vault-strips/strip-02.webp.b64 \
@@ -30,15 +31,14 @@ jobs:
             assets/vault-art-8/strip-01.webp.b64 \
             assets/vault-art-8/strip-02.webp.b64 \
             assets/vault-pairs/pair-01.webp.b64; do
-            safe=$(echo "$p" | tr '/' '_')
+            safe=$(echo "$p" | tr '/' '_' | sed 's/.webp.b64$//')
             git show vault-art-fix-test:"$p" > "/tmp/vault-strips/$safe.b64"
             base64 --decode "/tmp/vault-strips/$safe.b64" > "/tmp/vault-strips/$safe.webp"
           done
           python <<'PY'
           import base64, glob, io, math, os, re
-          from PIL import Image, ImageChops, ImageStat
+          from PIL import Image, ImageChops, ImageStat, ImageDraw
 
-          # Recover every valid direct card currently staged on this branch.
           pat=re.compile(r'"(HMM-\d{3})":"data:image/webp;base64,([A-Za-z0-9+/=]+)"')
           known={}
           for path in glob.glob('assets/mighty-vault/card-data/*.js'):
@@ -55,35 +55,53 @@ jobs:
                   im=Image.open(path); im.load(); known[cid]=im.convert('RGB')
           print('KNOWN_VALID', len(known), sorted(known))
 
-          def signature(im):
-              # comparison signature robust to different compression and dimensions
-              x=im.convert('RGB').resize((48,72))
-              return x
+          def signature(im): return im.convert('RGB').resize((48,72))
           sig={k:signature(v) for k,v in known.items()}
           def rmse(a,b):
-              d=ImageChops.difference(a,b)
-              stat=ImageStat.Stat(d)
+              stat=ImageStat.Stat(ImageChops.difference(a,b))
               return math.sqrt(sum(v*v for v in stat.rms)/3)
 
+          manifest=[]
+          thumbs=[]
           for path in sorted(glob.glob('/tmp/vault-strips/*.webp')):
               im=Image.open(path); im.load(); w,h=im.size
-              print('\nSTRIP', os.path.basename(path), 'SIZE', w,h, 'RATIO', round(w/h,4))
-              # Evaluate likely horizontal card counts 2 and 8; use whichever cell is portrait-like.
+              base=os.path.basename(path).replace('.webp','')
               candidates=[]
-              for n in (2,8):
+              for n in (2,4,8):
                   if w % n: continue
-                  cw=w//n
-                  ratio=cw/h
+                  cw=w//n; ratio=cw/h
                   if 0.45 <= ratio <= 0.85:
                       candidates.append((abs(ratio-70/120),n,cw))
+              print('\nSTRIP',base,'SIZE',w,h)
               if not candidates:
-                  print('  NO_PLAUSIBLE_SPLIT')
-                  continue
+                  print('  NO_PLAUSIBLE_SPLIT'); continue
               _,n,cw=min(candidates)
-              print('  SPLIT', n, 'CELL', cw,h)
+              print('  SPLIT',n,'CELL',cw,h)
               for i in range(n):
                   crop=im.crop((i*cw,0,(i+1)*cw,h)).convert('RGB')
+                  out=f'/tmp/vault-crops/{base}-cell-{i+1:02d}.webp'
+                  crop.save(out,'WEBP',quality=95)
                   cs=signature(crop)
                   ranked=sorted((rmse(cs,s),cid) for cid,s in sig.items())[:3]
-                  print('  CELL',i+1,'BEST', ', '.join(f'{cid}:{score:.2f}' for score,cid in ranked))
+                  best='; '.join(f'{cid}:{score:.2f}' for score,cid in ranked)
+                  print('  CELL',i+1,'BEST',best)
+                  manifest.append(f'{os.path.basename(out)}\t{best}')
+                  thumb=crop.resize((168,266))
+                  canvas=Image.new('RGB',(188,300),'white')
+                  canvas.paste(thumb,(10,10))
+                  d=ImageDraw.Draw(canvas)
+                  d.text((10,280),f'{base} #{i+1}',fill='black')
+                  thumbs.append(canvas)
+          open('/tmp/vault-crops/manifest.txt','w').write('\n'.join(manifest)+'\n')
+          if thumbs:
+              cols=4; rows=(len(thumbs)+cols-1)//cols
+              sheet=Image.new('RGB',(cols*188,rows*300),'white')
+              for j,t in enumerate(thumbs): sheet.paste(t,((j%cols)*188,(j//cols)*300))
+              sheet.save('/tmp/vault-crops/contact-sheet.jpg',quality=94)
           PY
+      - name: Upload crop audit artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-strip-crops
+          path: /tmp/vault-crops
+          retention-days: 1
