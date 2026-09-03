@@ -1,0 +1,38 @@
+name: Vault Fragment Forensics
+
+on:
+  push:
+    branches: [vault-recovery-analysis]
+    paths:
+      - '.github/workflows/vault-fragment-forensics.yml'
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch every branch and tag
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+          git fetch --tags --force || true
+      - name: Inventory all historical Vault transfer objects
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '=== HISTORICAL PATHS ==='
+          git log --all --name-only --pretty=format: | grep -Ei '(mighty-vault|vault|atlas|upload|part-|card-data|direct-|\.zip|\.b64)' | sort -u || true
+          echo '=== ALL REACHABLE OBJECT PATHS + SIZES ==='
+          git rev-list --objects --all | grep -Ei ' (.*(mighty-vault|vault|atlas|upload|part-|card-data|direct-|\.zip|\.b64).*)$' | while read -r sha path; do
+            type=$(git cat-file -t "$sha" 2>/dev/null || true)
+            size=$(git cat-file -s "$sha" 2>/dev/null || true)
+            printf '%s\t%s\t%s\t%s\n' "$sha" "$type" "$size" "$path"
+          done | sort -k4,4 || true
+          echo '=== UNREACHABLE/DANGLING BLOBS >= 10KB ==='
+          git fsck --full --no-reflogs --unreachable 2>/dev/null | awk '$2=="blob"{print $3}' | while read -r sha; do
+            size=$(git cat-file -s "$sha" 2>/dev/null || echo 0)
+            if [ "$size" -ge 10000 ]; then printf '%s\t%s\n' "$sha" "$size"; fi
+          done | sort -k2,2nr | head -200 || true
