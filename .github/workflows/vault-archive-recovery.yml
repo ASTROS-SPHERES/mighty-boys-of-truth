@@ -1,0 +1,55 @@
+name: Mighty Vault Archive Recovery Audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-archive-recovery.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  audit-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch every branch and tag
+        shell: bash
+        run: |
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+          git fetch --tags --force || true
+
+      - name: Recover historical Vault ZIP object
+        shell: bash
+        run: |
+          set -euo pipefail
+          BLOB='54eb1311a355613db54fb132ec4866bca7448e79'
+          git cat-file -e "${BLOB}^{blob}"
+          git cat-file blob "$BLOB" > /tmp/vault-card-assets.zip
+          echo "Archive bytes: $(wc -c < /tmp/vault-card-assets.zip)"
+          echo "Archive SHA256: $(sha256sum /tmp/vault-card-assets.zip | awk '{print $1}')"
+          unzip -t /tmp/vault-card-assets.zip
+          echo '=== ARCHIVE LISTING ==='
+          unzip -l /tmp/vault-card-assets.zip
+
+      - name: Extract and audit candidate cards
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/vault-recovered
+          mkdir -p /tmp/vault-recovered
+          unzip -q /tmp/vault-card-assets.zip -d /tmp/vault-recovered
+          echo '=== RECOVERED FILES ==='
+          find /tmp/vault-recovered -type f -printf '%P\n' | sort
+          echo '=== IMAGE COUNTS ==='
+          find /tmp/vault-recovered -type f | grep -Ei '\.(webp|png|jpe?g)$' | wc -l
+          echo '=== HMM-ID FILES ==='
+          find /tmp/vault-recovered -type f -printf '%f\n' | grep -Ei '^hmm-[0-9]{3}.*\.(webp|png|jpe?g)$' | sort || true
+          echo '=== FILE TYPE CHECK ==='
+          find /tmp/vault-recovered -type f | grep -Ei '\.(webp|png|jpe?g)$' | sort | while read -r f; do file "$f"; done
