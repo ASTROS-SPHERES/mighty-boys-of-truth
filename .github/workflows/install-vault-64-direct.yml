@@ -1,0 +1,45 @@
+name: Install verified Mighty Vault 64 direct cards
+
+on:
+  push:
+    branches:
+      - vault-final-64-direct
+    paths:
+      - 'assets/mighty-vault/upload64/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: vault-final-64-direct
+          fetch-depth: 0
+      - name: Reconstruct verified 64-card archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find assets/mighty-vault/upload64 -maxdepth 1 -name 'part-*.txt' | wc -l)" -eq 8
+          cat $(find assets/mighty-vault/upload64 -maxdepth 1 -name 'part-*.txt' | sort) | base64 --decode > /tmp/vault64.zip
+          echo 'f8d76e3d93d1e1363c0125e4e92faaf41c394f89bca4c31c8b375a3375abf253  /tmp/vault64.zip' | sha256sum -c -
+          rm -rf assets/mighty-vault/cards
+          unzip -o /tmp/vault64.zip -d .
+          test "$(find assets/mighty-vault/cards -maxdepth 1 -name 'hmm-*.webp' | wc -l)" -eq 64
+          test -f assets/mighty-vault/cards/hmm-001-enoch.webp
+          test -f assets/mighty-vault/cards/hmm-021-samuel.webp
+          test -f assets/mighty-vault/cards/hmm-037-meshach.webp
+          test -f assets/mighty-vault/cards/hmm-064-phoebe.webp
+      - name: Commit installed assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/mighty-vault/cards
+          git rm -r assets/mighty-vault/upload64
+          git rm .github/workflows/install-vault-64-direct.yml
+          git commit -m 'Install verified 64 direct Mighty Vault card assets'
+          git push origin HEAD:vault-final-64-direct
