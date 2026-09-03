@@ -24,14 +24,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'chunk-*.txt' | wc -l)" -eq 36
-          cat $(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'chunk-*.txt' | sort) | base64 --decode > /tmp/vault-direct.zip
-          echo 'd2f02082ee433929134833e801be7600518f3ff59cba72eca573f6a7481f184e  /tmp/vault-direct.zip' | sha256sum -c -
+          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'prod-*.txt' | wc -l)" -eq 21
+          cat $(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'prod-*.txt' | sort) | base64 --decode > /tmp/vault-direct.zip
+          echo '60485648df0ca35029857c3f3b27a88a5e92fca80feb9aba16380fa3a1887dd7  /tmp/vault-direct.zip' | sha256sum -c -
           rm -rf assets/mighty-vault/cards
           mkdir -p assets/mighty-vault/cards
           unzip -o /tmp/vault-direct.zip -d .
           test "$(find assets/mighty-vault/cards -maxdepth 1 -name 'hmm-*.webp' | wc -l)" -eq 64
           test -f assets/mighty-vault/cards/hmm-001-enoch.webp
+          test -f assets/mighty-vault/cards/hmm-021-samuel.webp
+          test -f assets/mighty-vault/cards/hmm-037-meshach.webp
           test -f assets/mighty-vault/cards/hmm-064-phoebe.webp
 
       - name: Commit clean 64-card library
