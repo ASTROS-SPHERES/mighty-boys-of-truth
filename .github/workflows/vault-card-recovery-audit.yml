@@ -1,0 +1,22 @@
+name: Mighty Vault Card Recovery Audit
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'assets/mighty-vault/card-data/**'
+      - 'scripts/recover-vault-card-assets.py'
+      - '.github/workflows/vault-card-recovery-audit.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  recover-and-audit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Recover and validate staged cards
+        run: python scripts/recover-vault-card-assets.py
