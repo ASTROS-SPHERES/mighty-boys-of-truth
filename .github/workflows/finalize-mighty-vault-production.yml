@@ -1,0 +1,145 @@
+name: Finalize Mighty Vault Production
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/finalize-mighty-vault-production.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Fetch verified artwork branch
+        shell: bash
+        run: git fetch origin vault-final-direct64-install:refs/remotes/origin/vault-final-direct64-install --force
+
+      - name: Install verified atlas and patch production
+        shell: bash
+        run: |
+          set -euo pipefail
+          git show origin/vault-final-direct64-install:assets/mighty-vault-card-atlas.webp > assets/mighty-vault-card-atlas.webp
+          echo 'ca0baab18c957767e8c1ff684c239208e922defb0cf144fe5b6d1f23ec4e999a  assets/mighty-vault-card-atlas.webp' | sha256sum -c -
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          # Switch all 64 heroes to the verified 8x8 atlas.
+          p=Path('assets/mighty-vault.js')
+          s=p.read_text()
+          old='const K="mbot-mighty-vault-v1",V="20260902-visualfix4",A=`assets/mighty-vault-card-atlas.webp?v=${V}`,S={61:`assets/vault-aquila.webp?v=${V}`,62:`assets/vault-lydia.webp?v=${V}`,63:`assets/vault-phoebe.webp?v=${V}`},Q='
+          new='const K="mbot-mighty-vault-v1",V="20260903-final64",A=`assets/mighty-vault-card-atlas.webp?v=${V}`,Q='
+          assert old in s, 'Expected current Vault asset declaration not found'
+          s=s.replace(old,new,1)
+          old_art='function art(i){if(S[i])return`<img class="vault-card-direct-img" src="${S[i]}" alt="" loading="eager" decoding="async">`;let c=i%8,r=Math.floor(i/8);return`<img class="vault-card-atlas-img" src="${A}" alt="" loading="eager" decoding="async" style="left:-${c*100}%;top:-${r*100}%">`}'
+          new_art='function art(i){let c=i%8,r=Math.floor(i/8);return`<img class="vault-card-atlas-img" src="${A}" alt="" loading="eager" decoding="async" style="left:-${c*100}%;top:-${r*100}%">`}'
+          assert old_art in s, 'Expected current art renderer not found'
+          s=s.replace(old_art,new_art,1)
+          p.write_text(s)
+
+          # Force clients off the old cached artwork build.
+          p=Path('service-worker.js')
+          s=p.read_text()
+          s=re.sub(r"const CACHE_VERSION = '[^']+';", "const CACHE_VERSION = 'mbot-revamp-v14-vault-final64-20260903';", s, count=1)
+          for line in [
+              "  './assets/vault-aquila.webp',\n",
+              "  './assets/vault-lydia.webp',\n",
+              "  './assets/vault-phoebe.webp',\n",
+          ]:
+              s=s.replace(line,'')
+          p.write_text(s)
+
+          # Cache-bust the production Vault JavaScript.
+          p=Path('mighty-vault.html')
+          s=p.read_text()
+          s=s.replace('assets/mighty-vault.js?v=20260902-final','assets/mighty-vault.js?v=20260903-final64')
+          p.write_text(s)
+
+          # Replace the old QA contract with exact final-art verification.
+          verifier=r'''#!/usr/bin/env python3
+from pathlib import Path
+import hashlib, re, struct, sys
+ROOT=Path(__file__).resolve().parents[1]
+errors=[]
+def need(rel):
+    p=ROOT/rel
+    if not p.is_file(): errors.append(f"Missing required file: {rel}")
+    return p
+def text(rel):
+    p=need(rel)
+    return p.read_text(encoding="utf-8") if p.is_file() else ""
+
+for rel in ["mighty-vault.html","assets/mighty-vault.js","assets/mighty-vault.css","assets/mighty-vault-final.css","assets/mighty-vault-card-atlas.webp","assets/mighty-vault-home-entry.webp","assets/site.js","service-worker.js"]: need(rel)
+
+js=text("assets/mighty-vault.js")
+html=text("mighty-vault.html")
+sw=text("service-worker.js")
+site=text("assets/site.js")
+
+m=re.search(r'const N="([^"]+)"\.split\("\|"\)',js)
+if not m: errors.append("Could not parse 64-hero roster")
+else:
+    heroes=m.group(1).split('|')
+    if len(heroes)!=64: errors.append(f"Expected 64 heroes, found {len(heroes)}")
+    if heroes[-3:]!=["Aquila","Lydia","Phoebe"]: errors.append(f"Roster tail wrong: {heroes[-3:]}")
+
+for marker in ["data-open-pack","data-collect-pack","data-vault-grid","data-vault-modal","data-unique-count","data-points","data-streak","data-rare-count"]:
+    if marker not in html: errors.append(f"Vault HTML missing hook: {marker}")
+
+if 'assets/mighty-vault-card-atlas.webp' not in js: errors.append("Vault JS does not reference final atlas")
+if '20260903-final64' not in js: errors.append("Vault JS final artwork version missing")
+for obsolete in ['vault-aquila.webp','vault-lydia.webp','vault-phoebe.webp']:
+    if obsolete in js: errors.append(f"Obsolete direct override still referenced in Vault JS: {obsolete}")
+if 'assets/mighty-vault.js?v=20260903-final64' not in html: errors.append("Vault HTML is not cache-busted to final64")
+if 'mighty-vault.html' not in site: errors.append("Homepage/site navigation has no Mighty Vault entry")
+if 'mbot-revamp-v14-vault-final64-20260903' not in sw: errors.append("Final service-worker cache version missing")
+if 'assets/mighty-vault-card-atlas.webp' not in sw: errors.append("Final atlas missing from service-worker core files")
+
+atlas=ROOT/'assets/mighty-vault-card-atlas.webp'
+if atlas.is_file():
+    b=atlas.read_bytes()
+    got=hashlib.sha256(b).hexdigest()
+    expected='ca0baab18c957767e8c1ff684c239208e922defb0cf144fe5b6d1f23ec4e999a'
+    if got!=expected: errors.append(f"Final atlas SHA-256 mismatch: {got}")
+    if len(b)<200000: errors.append(f"Final atlas unexpectedly small: {len(b)}")
+    if len(b)<12 or b[:4]!=b'RIFF' or b[8:12]!=b'WEBP': errors.append("Final atlas is not a RIFF/WEBP image")
+    elif struct.unpack_from('<I',b,4)[0]+8!=len(b): errors.append("Final atlas RIFF length mismatch")
+
+if errors:
+    print('MIGHTY VAULT VERIFICATION FAILED')
+    for e in errors: print(' -',e)
+    sys.exit(1)
+print('MIGHTY VAULT VERIFICATION PASSED')
+print(' - 64 heroes confirmed')
+print(' - approved final 64-card atlas checksum confirmed')
+print(' - daily-pack and collection hooks confirmed')
+print(' - stale direct artwork overrides removed')
+print(' - final cache migration confirmed')
+'''
+          Path('scripts/verify-mighty-vault.py').write_text(verifier)
+          PY
+
+          node --check assets/mighty-vault.js
+          node --check assets/site.js
+          python scripts/verify-mighty-vault.py
+
+      - name: Commit production finalization
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/mighty-vault-card-atlas.webp assets/mighty-vault.js service-worker.js mighty-vault.html scripts/verify-mighty-vault.py
+          git commit -m 'Finalize Mighty Vault 64-card production artwork'
+          git push origin HEAD:main
