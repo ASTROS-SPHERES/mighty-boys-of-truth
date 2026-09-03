@@ -1,0 +1,47 @@
+name: Install Mighty Vault direct production cards
+
+on:
+  push:
+    branches:
+      - vault-direct-production
+    paths:
+      - 'assets/mighty-vault/upload-parts/READY'
+
+permissions:
+  contents: write
+
+jobs:
+  install-card-assets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout clean repair branch
+        uses: actions/checkout@v4
+        with:
+          ref: vault-direct-production
+          fetch-depth: 0
+
+      - name: Reconstruct and verify direct card archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'part-*.txt' | wc -l)" -eq 12
+          cat $(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'part-*.txt' | sort) | base64 --decode > /tmp/vault-direct.zip
+          echo 'd2f02082ee433929134833e801be7600518f3ff59cba72eca573f6a7481f184e  /tmp/vault-direct.zip' | sha256sum -c -
+          rm -rf assets/mighty-vault/cards
+          mkdir -p assets/mighty-vault/cards
+          unzip -o /tmp/vault-direct.zip -d .
+          test "$(find assets/mighty-vault/cards -maxdepth 1 -name 'hmm-*.webp' | wc -l)" -eq 64
+          test -f assets/mighty-vault/cards/hmm-001-enoch.webp
+          test -f assets/mighty-vault/cards/hmm-064-phoebe.webp
+
+      - name: Commit clean 64-card library
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/mighty-vault/cards
+          git rm -r assets/mighty-vault/upload-parts
+          git rm .github/workflows/install-vault-direct-production.yml
+          git commit -m 'Install verified 64 direct Mighty Vault card assets'
+          git push origin HEAD:vault-direct-production
