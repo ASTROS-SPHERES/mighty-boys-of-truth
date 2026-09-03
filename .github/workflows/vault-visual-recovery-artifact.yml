@@ -1,0 +1,46 @@
+name: Mighty Vault Visual Recovery Artifact
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-visual-recovery-artifact.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Recover all valid staged card images without failing the package
+        shell: bash
+        run: |
+          set +e
+          python scripts/recover-vault-card-assets.py
+          echo "recovery_exit=$?"
+          exit 0
+
+      - name: Collect approved visual sources
+        shell: bash
+        run: |
+          mkdir -p /tmp/vault-visual-recovery/product /tmp/vault-visual-recovery/recovered
+          cp -f assets/products/mighty-hero-matchup/approved-hero-deck.webp /tmp/vault-visual-recovery/product/
+          cp -f assets/products/mighty-hero-matchup/complete-game.webp /tmp/vault-visual-recovery/product/
+          cp -f assets/products/mighty-hero-matchup/approved-product-box.webp /tmp/vault-visual-recovery/product/
+          cp -f assets/products/mighty-hero-matchup/hero-*.webp /tmp/vault-visual-recovery/product/
+          cp -f assets/vault-aquila.webp assets/vault-lydia.webp assets/vault-phoebe.webp /tmp/vault-visual-recovery/recovered/
+          cp -f assets/mighty-vault/cards/hmm-*.webp /tmp/vault-visual-recovery/recovered/ 2>/dev/null || true
+          find /tmp/vault-visual-recovery -type f -printf '%P\t%s bytes\n' | sort > /tmp/vault-visual-recovery/MANIFEST.txt
+
+      - name: Upload inspection artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mighty-vault-visual-recovery
+          path: /tmp/vault-visual-recovery
+          if-no-files-found: error
+          retention-days: 1
