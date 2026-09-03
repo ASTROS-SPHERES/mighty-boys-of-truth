@@ -1,0 +1,153 @@
+name: Mighty Vault Atlas Reconstruction
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-atlas-reconstruct.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch every branch
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+      - name: Analyze and reconstruct retained atlas streams
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          import base64, hashlib, itertools, os, re, subprocess, sys
+
+          # Every retained historical text blob that may contain a piece of the original
+          # Vault atlas or one of the attempted transfer archives.
+          SHAS = [
+            '075f4c3874957403e30fa6a16f9e882a85debb1a', # source/atlas-01
+            '72a35f341164a96c4380098b865772ff486d101e', # vault-atlas-b64-01
+            '4aeb78345e47f9978542585f61315175129c488b', # bundle-01
+            '1d4532fb856b9b35c2d102ae30c132d6363dace0', # chunk-00
+            '3fd60e337fc5064478b88b9353a6f5ea1b9828b6', # chunk-01 v1
+            '659e8c707b4cf007ae69cce3318786ba52bb1398', # chunk-01 v2
+            'e3ae530d74fb4226f7c930581206a3e4625a4db5', # final-001
+            '5b8b436da027f4349e62c5bcc89cbd1b01c6a037', # final-002
+            '75f1d2905def58c87772fad27cc18e574add0efc', # final-003
+            '1c70e7143e7a0b8b73dff27c9f6964483c153d15', # part-01
+            '668bb0a02de6114adcdb7ab478b35c57ed451bfd', # part-02
+            '2944a0cb301f5495c450b00aaecac44a48fd49aa', # part-03
+            'd34d4e086853920e5c6aba24024305dd7c68b6b4', # prod-00
+            'bba7e3d6971a4aa17a499b3f486644be04e0302b', # prod-01
+            '2d22a99b1ab0d71b100a2acbea268077639e18b1', # seg-001
+            '0da6049cdc34e5573780d0670b2e858c30309d84', # seg-002
+            '5612b5f7224e905dc3d74878e20495a1c5fdabb0', # seg-003
+            '6035407be5c8d128fe18c471feee0fde8021e9a8', # seg-004
+          ]
+          TARGET = 356620
+          B64 = re.compile(r'^[A-Za-z0-9+/=\s]+$')
+          frags={}
+          for sha in SHAS:
+              try:
+                  raw=subprocess.check_output(['git','cat-file','blob',sha])
+              except subprocess.CalledProcessError:
+                  continue
+              txt=raw.decode('ascii','ignore').strip().replace('\n','').replace('\r','')
+              if len(txt)>500 and B64.match(txt):
+                  frags[sha]=txt
+          print('VALID_BASE64_TEXT_BLOBS', len(frags))
+          for sha,s in frags.items():
+              head=s[:12]
+              print(sha, len(s), 'HEAD='+head, 'WEBP_HEAD='+str(s.startswith('UklG')), 'ZIP_HEAD='+str(s.startswith('UEsDB')))
+
+          # Show exact containment and useful suffix/prefix overlaps. This reveals repeated
+          # upload attempts and any genuine continuation chain.
+          print('\nCONTAINMENT')
+          for a,sa in frags.items():
+              for b,sb in frags.items():
+                  if a!=b and len(sa)<len(sb) and sa in sb:
+                      print(a,'IN',b,'AT',sb.index(sa))
+          print('\nOVERLAPS_GE_24')
+          edges=[]
+          for a,sa in frags.items():
+              for b,sb in frags.items():
+                  if a==b: continue
+                  maxk=min(len(sa),len(sb),20000)
+                  found=0
+                  # check likely transfer boundary lengths efficiently using find on prefix windows
+                  for k in range(maxk,23,-1):
+                      if sa[-k:]==sb[:k]: found=k; break
+                  if found:
+                      edges.append((found,a,b))
+          for k,a,b in sorted(edges, reverse=True)[:100]: print(k,a,'->',b)
+
+          # Candidate families based on historical naming/order. We test both direct concatenation
+          # and versions that remove exact overlaps. Some files are later replacements of earlier ones.
+          families = [
+            ['075f4c3874957403e30fa6a16f9e882a85debb1a','72a35f341164a96c4380098b865772ff486d101e'],
+            ['1d4532fb856b9b35c2d102ae30c132d6363dace0','3fd60e337fc5064478b88b9353a6f5ea1b9828b6'],
+            ['1d4532fb856b9b35c2d102ae30c132d6363dace0','659e8c707b4cf007ae69cce3318786ba52bb1398'],
+            ['e3ae530d74fb4226f7c930581206a3e4625a4db5','5b8b436da027f4349e62c5bcc89cbd1b01c6a037','75f1d2905def58c87772fad27cc18e574add0efc'],
+            ['1c70e7143e7a0b8b73dff27c9f6964483c153d15','668bb0a02de6114adcdb7ab478b35c57ed451bfd','2944a0cb301f5495c450b00aaecac44a48fd49aa'],
+            ['d34d4e086853920e5c6aba24024305dd7c68b6b4','bba7e3d6971a4aa17a499b3f486644be04e0302b'],
+            ['2d22a99b1ab0d71b100a2acbea268077639e18b1','0da6049cdc34e5573780d0670b2e858c30309d84','5612b5f7224e905dc3d74878e20495a1c5fdabb0','6035407be5c8d128fe18c471feee0fde8021e9a8'],
+          ]
+          def merge(seq):
+              out=''
+              for sha in seq:
+                  s=frags.get(sha,'')
+                  if not out: out=s; continue
+                  maxk=min(len(out),len(s))
+                  k=0
+                  for z in range(maxk,23,-1):
+                      if out[-z:]==s[:z]: k=z; break
+                  out += s[k:]
+              return out
+          def inspect(label,s):
+              # Normalize padding only for probing complete candidates.
+              try:
+                  data=base64.b64decode(s + '='*((4-len(s)%4)%4), validate=False)
+              except Exception as e:
+                  print(label,'DECODE_ERROR',e); return None
+              head=data[:12]
+              declared=None
+              if len(data)>=12 and data[:4]==b'RIFF' and data[8:12]==b'WEBP':
+                  declared=int.from_bytes(data[4:8],'little')+8
+              print(label,'chars',len(s),'bytes',len(data),'head',head,'declared',declared,'sha256',hashlib.sha256(data).hexdigest())
+              return data
+          for i,fam in enumerate(families,1):
+              seq=[x for x in fam if x in frags]
+              if not seq: continue
+              inspect(f'FAMILY_{i}_CONCAT', ''.join(frags[x] for x in seq))
+              inspect(f'FAMILY_{i}_MERGED', merge(seq))
+
+          # Build a greedy chain beginning with each WebP-header fragment, choosing the largest
+          # suffix-prefix overlap each step. Useful when filenames changed between transfer attempts.
+          for start in [x for x,s in frags.items() if s.startswith('UklG')]:
+              used={start}; chain=[start]; out=frags[start]
+              while True:
+                  best=None
+                  for b,sb in frags.items():
+                      if b in used: continue
+                      maxk=min(len(out),len(sb),20000); k=0
+                      for z in range(maxk,23,-1):
+                          if out[-z:]==sb[:z]: k=z; break
+                      if best is None or k>best[0]: best=(k,b)
+                  if not best or best[0]<24: break
+                  k,b=best; out+=frags[b][k:]; used.add(b); chain.append(b)
+              data=inspect('GREEDY_'+start[:8],out)
+              print('CHAIN',chain)
+              if data and len(data)==TARGET and data[:4]==b'RIFF' and data[8:12]==b'WEBP':
+                  open('/tmp/recovered-atlas.webp','wb').write(data)
+                  print('EXACT_ATLAS_RECOVERED', start, hashlib.sha256(data).hexdigest())
+          PY
+      - name: Upload exact recovered atlas if found
+        if: ${{ hashFiles('/tmp/recovered-atlas.webp') != '' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovered-mighty-vault-atlas
+          path: /tmp/recovered-atlas.webp
+          retention-days: 1
