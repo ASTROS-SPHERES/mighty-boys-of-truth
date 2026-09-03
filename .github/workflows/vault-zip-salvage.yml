@@ -1,0 +1,128 @@
+name: Mighty Vault ZIP Salvage
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-zip-salvage.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  salvage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch every branch
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+      - name: Decode historical fragments and salvage complete ZIP entries
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf /tmp/vault-salvage && mkdir -p /tmp/vault-salvage
+          python <<'PY'
+          import base64, binascii, hashlib, os, re, struct, subprocess, zlib
+
+          blobs={
+            'atlas_source':'075f4c3874957403e30fa6a16f9e882a85debb1a',
+            'atlas_small':'72a35f341164a96c4380098b865772ff486d101e',
+            'bundle':'4aeb78345e47f9978542585f61315175129c488b',
+            'chunk0':'1d4532fb856b9b35c2d102ae30c132d6363dace0',
+            'chunk1a':'3fd60e337fc5064478b88b9353a6f5ea1b9828b6',
+            'chunk1b':'659e8c707b4cf007ae69cce3318786ba52bb1398',
+            'final1':'e3ae530d74fb4226f7c930581206a3e4625a4db5',
+            'final2':'5b8b436da027f4349e62c5bcc89cbd1b01c6a037',
+            'final3':'75f1d2905def58c87772fad27cc18e574add0efc',
+            'part1':'1c70e7143e7a0b8b73dff27c9f6964483c153d15',
+            'part2':'668bb0a02de6114adcdb7ab478b35c57ed451bfd',
+            'part3':'2944a0cb301f5495c450b00aaecac44a48fd49aa',
+            'prod0':'d34d4e086853920e5c6aba24024305dd7c68b6b4',
+            'prod1':'bba7e3d6971a4aa17a499b3f486644be04e0302b',
+            'seg1':'2d22a99b1ab0d71b100a2acbea268077639e18b1',
+            'seg2':'0da6049cdc34e5573780d0670b2e858c30309d84',
+            'seg3':'5612b5f7224e905dc3d74878e20495a1c5fdabb0',
+            'seg4':'6035407be5c8d128fe18c471feee0fde8021e9a8',
+          }
+          B64CH=set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+          texts={}
+          for name,sha in blobs.items():
+              raw=subprocess.check_output(['git','cat-file','blob',sha])
+              txt=raw.decode('ascii','ignore').strip()
+              clean=''.join(c for c in txt if c in B64CH)
+              texts[name]=clean
+              bad=[(i,repr(c)) for i,c in enumerate(txt) if c not in B64CH and c not in '\r\n\t ']
+              print('FRAG',name,'raw',len(raw),'clean',len(clean),'first',clean[:16],'last',clean[-16:],'bad_count',len(bad),'bad_sample',bad[:5])
+              if name.startswith('atlas'):
+                  s=clean.rstrip('=')
+                  try:
+                      data=base64.b64decode(s+'='*((4-len(s)%4)%4),validate=False)
+                      declared=int.from_bytes(data[4:8],'little')+8 if data[:4]==b'RIFF' and data[8:12]==b'WEBP' else None
+                      print('ATLAS_FRAGMENT',name,'decoded',len(data),'declared',declared,'head',data[:12])
+                      open(f'/tmp/vault-salvage/{name}.partial.webp','wb').write(data)
+                  except Exception as e: print('ATLAS_DECODE_FAIL',name,e)
+
+          families={
+            'bundle':['bundle'],
+            'chunk_a':['chunk0','chunk1a'],
+            'chunk_b':['chunk0','chunk1b'],
+            'final':['final1','final2','final3'],
+            'part':['part1','part2','part3'],
+            'prod':['prod0','prod1'],
+            'seg':['seg1','seg2','seg3','seg4'],
+          }
+          def decode_parts(seq):
+              # Original transfers were slices of one base64 stream. Remove any premature
+              # '=' padding on non-final pieces before concatenation.
+              pieces=[]
+              for j,n in enumerate(seq):
+                  s=texts[n]
+                  if j<len(seq)-1: s=s.rstrip('=')
+                  pieces.append(s)
+              s=''.join(pieces).replace('=','')
+              s += '='*((4-len(s)%4)%4)
+              try: return base64.b64decode(s,validate=False)
+              except Exception as e:
+                  print('DECODE_FAIL',seq,e); return b''
+
+          def salvage(label,data):
+              print('\nARCHIVE',label,'bytes',len(data),'sha256',hashlib.sha256(data).hexdigest(),'head',data[:12])
+              open(f'/tmp/vault-salvage/{label}.partial.zip','wb').write(data)
+              pos=0; found=0; complete=0
+              while True:
+                  p=data.find(b'PK\x03\x04',pos)
+                  if p<0 or p+30>len(data): break
+                  found+=1
+                  try:
+                      sig,ver,flags,method,mtime,mdate,crc,csize,usize,nlen,elen=struct.unpack_from('<IHHHHHIIIHH',data,p)
+                  except struct.error: break
+                  name_start=p+30; name_end=name_start+nlen; payload=name_end+elen
+                  if name_end>len(data): break
+                  name=data[name_start:name_end].decode('utf-8','replace')
+                  print('ENTRY',found,'at',p,'name',name,'method',method,'flags',hex(flags),'csize',csize,'usize',usize,'available',max(0,len(data)-payload))
+                  # bit 3 means sizes are in a trailing descriptor; these archives usually don't use it.
+                  if not (flags & 0x08) and csize and payload+csize<=len(data):
+                      comp=data[payload:payload+csize]
+                      try:
+                          if method==0: out=comp
+                          elif method==8: out=zlib.decompress(comp,-15)
+                          else: out=None
+                          if out is not None and (not usize or len(out)==usize):
+                              complete+=1
+                              safe=re.sub(r'[^A-Za-z0-9_.-]+','_',os.path.basename(name)) or f'entry-{found}'
+                              open(f'/tmp/vault-salvage/{label}-{complete:02d}-{safe}','wb').write(out)
+                              print('  COMPLETE',len(out),'head',out[:12],'sha256',hashlib.sha256(out).hexdigest())
+                      except Exception as e: print('  DECOMPRESS_FAIL',e)
+                  pos=max(p+4,payload+(csize if csize else 0))
+              print('ARCHIVE_RESULT',label,'headers',found,'complete_entries',complete)
+
+          for label,seq in families.items(): salvage(label,decode_parts(seq))
+          PY
+      - name: Upload salvaged files
+        uses: actions/upload-artifact@v4
+        with:
+          name: mighty-vault-salvaged-archives
+          path: /tmp/vault-salvage
+          retention-days: 1
