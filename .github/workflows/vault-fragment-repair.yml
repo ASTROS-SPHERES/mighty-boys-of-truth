@@ -1,0 +1,178 @@
+name: Mighty Vault Fragment Repair
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-fragment-repair.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  repair:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fetch all retained refs
+        shell: bash
+        run: |
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+          git fetch --tags --force || true
+      - name: Brute-force damaged base64 transfer boundaries
+        shell: bash
+        run: |
+          set -euo pipefail
+          python <<'PY'
+          import base64, binascii, itertools, os, re, struct, subprocess, zlib
+
+          BLOBS = {
+            'chunk0':'1d4532fb856b9b35c2d102ae30c132d6363dace0',
+            'chunk1a':'3fd60e337fc5064478b88b9353a6f5ea1b9828b6',
+            'chunk1b':'659e8c707b4cf007ae69cce3318786ba52bb1398',
+            'final1':'e3ae530d74fb4226f7c930581206a3e4625a4db5',
+            'final2':'5b8b436da027f4349e62c5bcc89cbd1b01c6a037',
+            'final3':'75f1d2905def58c87772fad27cc18e574add0efc',
+            'prod0':'d34d4e086853920e5c6aba24024305dd7c68b6b4',
+            'prod1':'bba7e3d6971a4aa17a499b3f486644be04e0302b',
+            'part1':'1c70e7143e7a0b8b73dff27c9f6964483c153d15',
+            'part2':'668bb0a02de6114adcdb7ab478b35c57ed451bfd',
+            'part3':'2944a0cb301f5495c450b00aaecac44a48fd49aa',
+            'seg1':'2d22a99b1ab0d71b100a2acbea268077639e18b1',
+            'seg2':'0da6049cdc34e5573780d0670b2e858c30309d84',
+            'seg3':'5612b5f7224e905dc3d74878e20495a1c5fdabb0',
+            'seg4':'6035407be5c8d128fe18c471feee0fde8021e9a8',
+          }
+          b64set=set('ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=')
+          def blob(sha):
+              return subprocess.check_output(['git','cat-file','blob',sha]).decode('utf-8','ignore')
+          raw={k:blob(v) for k,v in BLOBS.items()}
+          clean={k:''.join(c for c in s if c in b64set) for k,s in raw.items()}
+          for k,s in clean.items(): print('FRAG',k,'RAW',len(raw[k]),'CLEAN',len(s),'MOD4',len(s)%4,'HEAD',s[:16],'TAIL',s[-16:])
+
+          hmm_re=re.compile(r'(?i)(hmm[-_ ]?\d{3}[^/\\\x00]{0,80}?\.webp)')
+          def parse_local_entries(data):
+              out=[]; pos=0
+              while True:
+                  i=data.find(b'PK\x03\x04',pos)
+                  if i<0 or i+30>len(data): break
+                  try:
+                      sig,ver,flag,method,mt,md,crc,csize,usize,nlen,xlen=struct.unpack_from('<IHHHHHIIIHH',data,i)
+                  except struct.error: break
+                  ns=i+30; ne=ns+nlen; ds=ne+xlen; de=ds+csize
+                  if ne>len(data) or ds>len(data): pos=i+4; continue
+                  name=data[ns:ne].decode('utf-8','replace')
+                  if flag & 0x08 or de>len(data):
+                      out.append((name,None,'incomplete'))
+                      pos=i+4; continue
+                  comp=data[ds:de]
+                  try:
+                      if method==0: payload=comp
+                      elif method==8: payload=zlib.decompress(comp,-15)
+                      else: raise ValueError('method')
+                      ok_crc=(binascii.crc32(payload)&0xffffffff)==crc
+                      valid_webp=(len(payload)>=12 and payload[:4]==b'RIFF' and payload[8:12]==b'WEBP' and struct.unpack_from('<I',payload,4)[0]+8==len(payload))
+                      out.append((name,payload,'ok' if ok_crc and valid_webp else 'bad'))
+                  except Exception:
+                      out.append((name,None,'bad'))
+                  pos=max(i+4,de)
+              return out
+
+          def score_bytes(data):
+              entries=parse_local_entries(data)
+              valid=[]
+              for name,payload,status in entries:
+                  m=re.search(r'(?i)hmm[-_ ]?(\d{3}).*\.webp$',name)
+                  if m and status=='ok': valid.append((int(m.group(1)),name,len(payload)))
+              return sorted(set(valid)), entries
+
+          def decode_candidate(s):
+              # '=' is only legal at the tail for these transfer streams.
+              s=s.replace('=','')
+              s += '='*((-len(s))%4)
+              try: return base64.b64decode(s,validate=True)
+              except Exception: return None
+
+          best={}
+          def consider(label,s,desc):
+              data=decode_candidate(s)
+              if data is None: return
+              valid,entries=score_bytes(data)
+              key=(len(valid),len(entries),len(data))
+              if label not in best or key>best[label][0]: best[label]=(key,desc,valid,entries,data)
+
+          # Baselines and simple concatenations.
+          families={
+            'chunk-a':[clean['chunk0'],clean['chunk1a']],
+            'chunk-b':[clean['chunk0'],clean['chunk1b']],
+            'final':[clean['final1'],clean['final2'],clean['final3']],
+            'prod':[clean['prod0'],clean['prod1']],
+            'part':[clean['part1'],clean['part2'],clean['part3']],
+            'seg':[clean['seg1'],clean['seg2'],clean['seg3'],clean['seg4']],
+          }
+          for label,parts in families.items(): consider(label,''.join(parts),'baseline')
+
+          # Try small trims/overlaps at boundaries for every family.
+          for label,parts in families.items():
+              if len(parts)>4: continue
+              trim_range=range(0,9)
+              # right trim of each part plus left trim of following part
+              choices=[(r,l) for r in trim_range for l in trim_range]
+              for combo in itertools.product(choices, repeat=len(parts)-1):
+                  built=parts[0]
+                  desc=[]
+                  for j,(r,l) in enumerate(combo):
+                      if r: built=built[:-r]
+                      nxt=parts[j+1][l:]
+                      built+=nxt
+                      desc.append(f'b{j}:r{r}l{l}')
+                  consider(label,built,','.join(desc))
+
+          # One-character deletion near boundaries. Critical for 45001/38713 style corruption.
+          for label,parts in families.items():
+              joined=''.join(p.replace('=','') for p in parts)
+              bounds=[]; acc=0
+              for p in parts[:-1]:
+                  acc+=len(p.replace('=','')); bounds.append(acc)
+              candidate_positions=set()
+              for b in bounds:
+                  candidate_positions.update(range(max(0,b-96),min(len(joined),b+97)))
+              for pos in sorted(candidate_positions):
+                  consider(label,joined[:pos]+joined[pos+1:],f'del@{pos}')
+
+          # One-character insertion of each base64 alphabet symbol at boundaries (for a missing char).
+          alphabet='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
+          for label,parts in families.items():
+              joined=''.join(p.replace('=','') for p in parts)
+              bounds=[]; acc=0
+              for p in parts[:-1]:
+                  acc+=len(p.replace('=','')); bounds.append(acc)
+              for b in bounds:
+                  for delta in range(-12,13):
+                      pos=max(0,min(len(joined),b+delta))
+                      for ch in alphabet:
+                          consider(label,joined[:pos]+ch+joined[pos:],f'ins {ch}@{pos}')
+
+          os.makedirs('/tmp/vault-fragment-repair',exist_ok=True)
+          all_ids=set()
+          for label in families:
+              if label not in best:
+                  print('BEST',label,'NONE'); continue
+              key,desc,valid,entries,data=best[label]
+              print('\nBEST',label,'SCORE',key,'EDIT',desc)
+              print('VALID',valid)
+              print('ENTRIES',[(n,s) for n,_,s in entries])
+              for cid,name,size in valid: all_ids.add(cid)
+              open(f'/tmp/vault-fragment-repair/{label}.bin','wb').write(data)
+              open(f'/tmp/vault-fragment-repair/{label}.txt','w').write('EDIT '+desc+'\nVALID '+repr(valid)+'\nENTRIES '+repr([(n,s) for n,_,s in entries])+'\n')
+          print('\nALL_VALID_IDS',sorted(all_ids),'COUNT',len(all_ids))
+          PY
+      - name: Upload repaired fragment audit
+        uses: actions/upload-artifact@v4
+        with:
+          name: vault-fragment-repair
+          path: /tmp/vault-fragment-repair
+          retention-days: 1
