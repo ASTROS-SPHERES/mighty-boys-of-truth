@@ -1,0 +1,53 @@
+name: Mighty Vault Archive Forensics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-archive-forensics.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect-archive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout full history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch all branches
+        run: git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+
+      - name: Inspect retained Vault ZIP object
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA='54eb1311a355613db54fb132ec4866bca7448e79'
+          echo "Object type: $(git cat-file -t "$SHA")"
+          echo "Object size: $(git cat-file -s "$SHA") bytes"
+          git cat-file blob "$SHA" > /tmp/vault-card-assets.zip
+          echo "SHA256: $(sha256sum /tmp/vault-card-assets.zip | awk '{print $1}')"
+          file /tmp/vault-card-assets.zip || true
+          echo '=== ZIP TEST ==='
+          unzip -t /tmp/vault-card-assets.zip || true
+          echo '=== ZIP LIST ==='
+          unzip -l /tmp/vault-card-assets.zip || true
+          echo '=== CARD COUNT ==='
+          python - <<'PY'
+          import zipfile
+          p='/tmp/vault-card-assets.zip'
+          try:
+              with zipfile.ZipFile(p) as z:
+                  names=z.namelist()
+                  cards=[n for n in names if n.lower().endswith('.webp') and 'hmm-' in n.lower()]
+                  print('entries=',len(names))
+                  print('hmm_webp_cards=',len(cards))
+                  print('first=',cards[:5])
+                  print('last=',cards[-5:])
+          except Exception as e:
+              print('python_zip_error=',repr(e))
+          PY
