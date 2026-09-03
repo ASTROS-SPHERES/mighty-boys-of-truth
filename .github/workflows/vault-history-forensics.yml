@@ -1,0 +1,42 @@
+name: Mighty Vault Full History Forensics
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/vault-history-forensics.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  scan-history:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch every branch and tag
+        shell: bash
+        run: |
+          git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
+          git fetch --tags --force || true
+
+      - name: Scan all historical filenames
+        shell: bash
+        run: |
+          echo '=== ALL HISTORICAL HMM / MATCHUP / VAULT / CARD ARCHIVE PATHS ==='
+          git log --all --name-only --pretty=format: | \
+            grep -Ei '(^|/)(hmm-[^/]*\.(webp|png|jpg|jpeg)|[^/]*(mighty[-_ ]?hero|hero[-_ ]?matchup|matchup|mighty[-_ ]?vault)[^/]*\.(webp|png|jpg|jpeg|zip)|[^/]*(vault|matchup|cards?)[^/]*\.zip)$' | \
+            sort -u || true
+          echo '=== MATCHING OBJECT PATHS ACROSS ALL REFS ==='
+          git rev-list --objects --all | \
+            grep -Ei ' (.*hmm-[^ ]*\.(webp|png|jpg|jpeg)|.*(matchup|mighty-vault|mighty_vault).*(webp|png|jpg|jpeg|zip)|.*(vault|matchup|cards?).*\.zip)$' | \
+            sort -u || true
+          echo '=== HERO-NAMED IMAGE PATHS ACROSS ALL COMMITS ==='
+          git log --all --name-only --pretty=format: | \
+            grep -Ei '/(enoch|noah|abraham|sarah|isaac|rebekah|jacob|joseph|moses|aaron|miriam|joshua|caleb|rahab|deborah|gideon|samson|ruth|boaz|hannah|samuel|jonathan|david|abigail|solomon|nathan|benaiah|elijah|elisha|hezekiah|josiah|isaiah|jeremiah|ezekiel|daniel|shadrach|meshach|abednego|esther|mordecai|ezra|nehemiah|job|elizabeth|peter|andrew|matthew|thomas|philip|stephen|barnabas|paul|timothy|silas|priscilla|aquila|lydia|phoebe)[^/]*\.(webp|png|jpg|jpeg)$' | \
+            sort -u || true
