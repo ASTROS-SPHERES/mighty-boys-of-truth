@@ -1,0 +1,1 @@
+window.MIGHTY_VAULT_CARD_IMAGES=Object.assign(window.MIGHTY_VAULT_CARD_IMAGES||{},{});
