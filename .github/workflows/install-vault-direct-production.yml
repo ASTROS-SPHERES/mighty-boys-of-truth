@@ -24,7 +24,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'chunk-*.txt' | wc -l)" -eq 46
+          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'chunk-*.txt' | wc -l)" -eq 36
           cat $(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'chunk-*.txt' | sort) | base64 --decode > /tmp/vault-direct.zip
           echo 'd2f02082ee433929134833e801be7600518f3ff59cba72eca573f6a7481f184e  /tmp/vault-direct.zip' | sha256sum -c -
           rm -rf assets/mighty-vault/cards
