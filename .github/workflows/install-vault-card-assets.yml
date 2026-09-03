@@ -24,9 +24,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'part-*.txt' | wc -l)" -eq 14
-          cat $(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'part-*.txt' | sort) | base64 --decode > /tmp/vault-card-assets.zip
-          echo '9b20fd7a19f1a85b943bf7278a4c0c7ad804290a2d4ea2353805e489920fc90d  /tmp/vault-card-assets.zip' | sha256sum -c -
+          test "$(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'bundle-*.txt' | wc -l)" -eq 67
+          cat $(find assets/mighty-vault/upload-parts -maxdepth 1 -name 'bundle-*.txt' | sort) | base64 --decode > /tmp/vault-card-assets.zip
+          echo 'ca83c84737e8b093b39eb88eeb078f0def916a050abd3a03d9a73f0076a1a846  /tmp/vault-card-assets.zip' | sha256sum -c -
           unzip -o /tmp/vault-card-assets.zip -d .
           test "$(find assets/mighty-vault/cards -maxdepth 1 -name 'hmm-*.webp' | wc -l)" -eq 64
 
