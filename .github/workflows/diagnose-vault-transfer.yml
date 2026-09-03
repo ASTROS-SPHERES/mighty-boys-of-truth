@@ -1,0 +1,52 @@
+name: Diagnose Mighty Vault Transfer
+
+on:
+  push:
+    branches: [vault-final-direct64-install]
+    paths:
+      - '.github/workflows/diagnose-vault-transfer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: vault-final-direct64-install
+      - name: Verify every transfer segment
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat > /tmp/expected.sha256 <<'EOF'
+          5dffa936d6d64fd52a1e856cc6f020a1be8420156f7227f2fe00753b6daeb57b  assets/vault-transfer-final/part-01.txt
+          f1315e98d23474793cb15bcf8182c6c0916c27da8b380f491cc7b3198f581845  assets/vault-transfer-final/part-02.txt
+          0a5aebca46574f0d38ca5040452155235043aef341bf3d3e41e0e3014ee70fa4  assets/vault-transfer-final/part-03.txt
+          7d0cfb0ed6bc0d6c7a122fab29b267307fed00092a3b799b2f130eec809104b2  assets/vault-transfer-final/part-04.txt
+          ed49b497cfaa55596b1c24742c721bb395d4995e8a52d77bed95cad6ec135fd2  assets/vault-transfer-final/part-05.txt
+          c09ab1598589a2bb22c8a4e5b7777eb32f548dac55db65ae1ab08da42d5b7e49  assets/vault-transfer-final/part-06.txt
+          b60b2864e4cf6b95afd4f0922770654e3cd9433d679b80dfd3539cb0c2e7860f  assets/vault-transfer-final/part-07.txt
+          cc1edfc461e28d07041c0cae13f1bee544c1b5911591851a08fef52eb058cfb2  assets/vault-transfer-final/part-08.txt
+          cf24d8d9412504a04c6d4c83b0948d5aaf7eabc925946a6256be070cfc2e847d  assets/vault-transfer-final/part-09.txt
+          79f9d08699567827cec664db4617ae4f93ea840f38b69818c3e36b849f797b32  assets/vault-transfer-final/part-10.txt
+          aa50c85cdfbc93733153b1d4fe2d9645a9ded95017b186fdc357b24d45b2aaa8  assets/vault-transfer-final/part-11.txt
+          9d19dcf0e2daf68fb712d3ad020eb7ec496e60d1b0d832ca490e8365ef543cb0  assets/vault-transfer-final/part-12.txt
+          b8ad0887854adb94def6eb03281b9c3ec6b8e334934f79aaa7340e10ec6b7c15  assets/vault-transfer-final/part-13.txt
+          c5f1ac76db6eb6a7a2c1267765c3840025d8d98804b45a297d0808e03322e57a  assets/vault-transfer-final/part-14.txt
+          462ec59bb6a1ba204fe769d86d771d7c65e71ec80f03d13006fd0ba0cc2b5878  assets/vault-transfer-final/part-15.txt
+          fb92b679a3591c67e42bf3d0321070971c9de1c39ce22891720e8bc9a85b8e91  assets/vault-transfer-final/part-16.txt
+          f8e31b4ee987607d4610beb5970654a6bacec4f2543ceeaff5fafc60f23d0516  assets/vault-transfer-final/part-17.txt
+          59aef24674b025d6f26051466bfe0cc24912ac063e83f95866fe34186999f7ee  assets/vault-transfer-final/part-18.txt
+          0e8b8f82a5bb0524a2a5c1ea15e2db0e7bf5c97df85dd96e61521ccb9fa8ad70  assets/vault-transfer-final/part-19.txt
+          a0e84cd5ad79c71fe9527e56aa7ddec72b93b0142b1902cd5327c785cefe3b11  assets/vault-transfer-final/part-20.txt
+          5ff7cd68f99546d12f875e8c4beaf9336638fda44e126bd4a9f06b2316e774dc  assets/vault-transfer-final/part-21.txt
+          125d8a57f147e8298fb39bdc11a003268201e92c8ab19e18fa61d5f2366b496a  assets/vault-transfer-final/part-22.txt
+          cf022eb224798bb48ba3c53cc4f9c8c9685d01e1ce8c961a8f72672c57679ce3  assets/vault-transfer-final/part-23.txt
+          EOF
+          sha256sum -c /tmp/expected.sha256
+          cat assets/vault-transfer-final/part-{01..23}.txt | base64 -d > /tmp/atlas.webp
+          echo "ATLAS_SHA256=$(sha256sum /tmp/atlas.webp | cut -d' ' -f1)"
+          echo "ATLAS_SIZE=$(wc -c < /tmp/atlas.webp)"
