@@ -1,0 +1,1 @@
+Direct WebP Hero files are installed via Git blob/tree objects. This marker is temporary during repair.
