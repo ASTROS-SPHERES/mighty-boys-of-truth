@@ -22,21 +22,35 @@ jobs:
       - name: Fetch every branch and tag
         shell: bash
         run: |
+          set -euo pipefail
           git fetch origin '+refs/heads/*:refs/remotes/origin/*' --force --prune
           git fetch --tags --force || true
 
-      - name: Scan all historical filenames
+      - name: Scan complete Vault history and transfer fragments
         shell: bash
         run: |
-          echo '=== ALL HISTORICAL HMM / MATCHUP / VAULT / CARD ARCHIVE PATHS ==='
+          set -euo pipefail
+          echo '=== ALL HISTORICAL VAULT / ATLAS / UPLOAD / PART PATHS ==='
           git log --all --name-only --pretty=format: | \
-            grep -Ei '(^|/)(hmm-[^/]*\.(webp|png|jpg|jpeg)|[^/]*(mighty[-_ ]?hero|hero[-_ ]?matchup|matchup|mighty[-_ ]?vault)[^/]*\.(webp|png|jpg|jpeg|zip)|[^/]*(vault|matchup|cards?)[^/]*\.zip)$' | \
+            grep -Ei '(mighty-vault|mighty_vault|vault|atlas|upload|part-|card-data|direct-|\.zip$|\.b64$)' | \
             sort -u || true
-          echo '=== MATCHING OBJECT PATHS ACROSS ALL REFS ==='
+
+          echo '=== MATCHING REACHABLE OBJECTS WITH TYPE + SIZE ==='
           git rev-list --objects --all | \
-            grep -Ei ' (.*hmm-[^ ]*\.(webp|png|jpg|jpeg)|.*(matchup|mighty-vault|mighty_vault).*(webp|png|jpg|jpeg|zip)|.*(vault|matchup|cards?).*\.zip)$' | \
-            sort -u || true
-          echo '=== HERO-NAMED IMAGE PATHS ACROSS ALL COMMITS ==='
+            grep -Ei ' (.*(mighty-vault|mighty_vault|vault|atlas|upload|part-|card-data|direct-|\.zip|\.b64).*)$' | \
+            while read -r sha path; do
+              type=$(git cat-file -t "$sha" 2>/dev/null || true)
+              size=$(git cat-file -s "$sha" 2>/dev/null || true)
+              printf '%s\t%s\t%s\t%s\n' "$sha" "$type" "$size" "$path"
+            done | sort -k4,4 || true
+
+          echo '=== HISTORICAL HMM / MATCHUP IMAGE PATHS ==='
           git log --all --name-only --pretty=format: | \
-            grep -Ei '/(enoch|noah|abraham|sarah|isaac|rebekah|jacob|joseph|moses|aaron|miriam|joshua|caleb|rahab|deborah|gideon|samson|ruth|boaz|hannah|samuel|jonathan|david|abigail|solomon|nathan|benaiah|elijah|elisha|hezekiah|josiah|isaiah|jeremiah|ezekiel|daniel|shadrach|meshach|abednego|esther|mordecai|ezra|nehemiah|job|elizabeth|peter|andrew|matthew|thomas|philip|stephen|barnabas|paul|timothy|silas|priscilla|aquila|lydia|phoebe)[^/]*\.(webp|png|jpg|jpeg)$' | \
+            grep -Ei '(^|/)(hmm-[^/]*\.(webp|png|jpg|jpeg)|[^/]*(mighty[-_ ]?hero|hero[-_ ]?matchup|matchup)[^/]*\.(webp|png|jpg|jpeg|zip))$' | \
             sort -u || true
+
+          echo '=== UNREACHABLE/DANGLING BLOBS >= 10KB ==='
+          git fsck --full --no-reflogs --unreachable 2>/dev/null | awk '$2=="blob"{print $3}' | while read -r sha; do
+            size=$(git cat-file -s "$sha" 2>/dev/null || echo 0)
+            if [ "$size" -ge 10000 ]; then printf '%s\t%s\n' "$sha" "$size"; fi
+          done | sort -k2,2nr | head -250 || true
