@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'mbot-revamp-v14-vault-final64-20260903';
+const CACHE_VERSION = 'mbot-revamp-v15-vault-hq-20260905';
 const CORE_FILES = [
   './',
   './index.html',
@@ -21,6 +21,14 @@ const CORE_FILES = [
   './assets/mighty-vault.css',
   './assets/mighty-vault-final.css',
   './assets/mighty-vault.js',
+  './assets/mighty-vault/card-data/direct-01.js',
+  './assets/mighty-vault/card-data/direct-02.js',
+  './assets/mighty-vault/card-data/direct-03.js',
+  './assets/mighty-vault/card-data/direct-04.js',
+  './assets/mighty-vault/card-data/direct-05.js',
+  './assets/mighty-vault/card-data/direct-06.js',
+  './assets/mighty-vault/card-data/direct-07.js',
+  './assets/mighty-vault/card-data/direct-08a.js',
   './assets/mighty-vault-card-atlas.webp',
   './assets/vault-aquila.webp',
   './assets/vault-lydia.webp',
