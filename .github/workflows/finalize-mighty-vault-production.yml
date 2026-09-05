@@ -29,18 +29,53 @@ jobs:
           git show origin/vault-final-direct64-install:assets/mighty-vault-card-atlas.webp > assets/mighty-vault-card-atlas.webp
           echo 'ca0baab18c957767e8c1ff684c239208e922defb0cf144fe5b6d1f23ec4e999a  assets/mighty-vault-card-atlas.webp' | sha256sum -c -
 
-      - name: Bump Vault artwork and cache versions
+      - name: Switch Vault draw to verified high-resolution card images
         run: |
           set -euo pipefail
-          python -c 'from pathlib import Path; p=Path("assets/mighty-vault.js"); s=p.read_text(); assert "V=\"20260902-visualfix4\"" in s; p.write_text(s.replace("V=\"20260902-visualfix4\"","V=\"20260903-final64\"",1))'
-          python -c 'from pathlib import Path; p=Path("mighty-vault.html"); s=p.read_text(); assert "assets/mighty-vault.js?v=20260902-final" in s; p.write_text(s.replace("assets/mighty-vault.js?v=20260902-final","assets/mighty-vault.js?v=20260903-final64",1))'
-          python -c 'from pathlib import Path; import re; p=Path("service-worker.js"); s=p.read_text(); s,n=re.subn(r"const CACHE_VERSION = .+?;","const CACHE_VERSION = '\''mbot-revamp-v14-vault-final64-20260903'\'';",s,count=1); assert n==1; p.write_text(s)'
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          html = Path('mighty-vault.html')
+          s = html.read_text()
+          marker = '<script src="assets/mighty-vault.js?v=20260903-final64" defer></script>'
+          direct = ''.join(f'<script src="assets/mighty-vault/card-data/direct-{name}.js?v=20260905-hq" defer></script>' for name in ['01','02','03','04','05','06','07','08a'])
+          if 'direct-01.js?v=20260905-hq' not in s:
+              assert marker in s
+              s = s.replace(marker, direct + marker, 1)
+          html.write_text(s)
+
+          js = Path('assets/mighty-vault.js')
+          s = js.read_text()
+          old = 'function art(i){if(S[i])return`<img class="vault-card-direct-img" src="${S[i]}" alt="" loading="eager" decoding="async">`;let c=i%8,r=Math.floor(i/8);return`<img class="vault-card-atlas-img" src="${A}" alt="" loading="eager" decoding="async" style="left:-${c*100}%;top:-${r*100}%">`}'
+          new = 'function art(i){let key=id(i),direct=window.MIGHTY_VAULT_CARD_IMAGES?.[key];if(direct)return`<img class="vault-card-direct-img" src="${direct}" alt="" loading="eager" decoding="async">`;if(S[i])return`<img class="vault-card-direct-img" src="${S[i]}" alt="" loading="eager" decoding="async">`;let c=i%8,r=Math.floor(i/8);return`<img class="vault-card-atlas-img" src="${A}" alt="" loading="eager" decoding="async" style="left:-${c*100}%;top:-${r*100}%">`}'
+          assert old in s
+          js.write_text(s.replace(old, new, 1))
+
+          sw = Path('service-worker.js')
+          s = sw.read_text()
+          if "mbot-revamp-v15-vault-hq-20260905" not in s:
+              s = s.replace("const CACHE_VERSION = 'mbot-revamp-v14-vault-final64-20260903';", "const CACHE_VERSION = 'mbot-revamp-v15-vault-hq-20260905';", 1)
+          anchor = "  './assets/mighty-vault.js',\n"
+          direct_files = ''.join(f"  './assets/mighty-vault/card-data/direct-{name}.js',\n" for name in ['01','02','03','04','05','06','07','08a'])
+          if "./assets/mighty-vault/card-data/direct-01.js" not in s:
+              assert anchor in s
+              s = s.replace(anchor, anchor + direct_files, 1)
+          sw.write_text(s)
+          PY
+
+      - name: Bump Vault cache version
+        run: |
+          set -euo pipefail
+          python -c 'from pathlib import Path; p=Path("assets/mighty-vault.js"); s=p.read_text(); s=s.replace("V=\"20260903-final64\"","V=\"20260905-hq\"",1); p.write_text(s)'
+          python -c 'from pathlib import Path; p=Path("mighty-vault.html"); s=p.read_text(); s=s.replace("assets/mighty-vault-final.css?v=20260902-final","assets/mighty-vault-final.css?v=20260905-hq",1); p.write_text(s)'
 
       - name: Validate production Vault
         run: |
           set -euo pipefail
           node --check assets/mighty-vault.js
           node --check assets/site.js
+          for f in assets/mighty-vault/card-data/direct-01.js assets/mighty-vault/card-data/direct-02.js assets/mighty-vault/card-data/direct-03.js assets/mighty-vault/card-data/direct-04.js assets/mighty-vault/card-data/direct-05.js assets/mighty-vault/card-data/direct-06.js assets/mighty-vault/card-data/direct-07.js assets/mighty-vault/card-data/direct-08a.js; do node --check "$f"; done
           python scripts/verify-mighty-vault.py
           python -c 'from pathlib import Path; import hashlib,struct; b=Path("assets/mighty-vault-card-atlas.webp").read_bytes(); assert hashlib.sha256(b).hexdigest()=="ca0baab18c957767e8c1ff684c239208e922defb0cf144fe5b6d1f23ec4e999a"; assert b[:4]==b"RIFF" and b[8:12]==b"WEBP" and struct.unpack_from("<I",b,4)[0]+8==len(b); print("Final 64-card atlas verified")'
 
@@ -50,5 +85,5 @@ jobs:
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add assets/mighty-vault-card-atlas.webp assets/mighty-vault.js mighty-vault.html service-worker.js
-          git commit -m 'Finalize Mighty Vault 64-card production artwork'
+          git commit -m 'Use verified high-resolution Mighty Vault card artwork'
           git push origin HEAD:main
